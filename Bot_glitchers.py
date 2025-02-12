@@ -1,5 +1,3 @@
-!pip install --upgrade pyTelegramBotAPI
-
 import telebot
 import time
 from datetime import datetime, timedelta
