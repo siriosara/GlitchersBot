@@ -17,9 +17,9 @@ user_registered = set()  # Utenti che hanno accettato di partecipare
 
 # 🔹 Soglie XP e Video Premi
 video_premi = {
-    250: "FILE_ID_PARTE_1",
-    500: "FILE_ID_PARTE_2",
-    1000: "FILE_ID_PARTE_3"
+    250: "BAACAgQAAxkBAANRZ65g5avV2vGeKWB2sB7rYpL-z3QAAhYVAAK4hXFRQOWBHIJF29E2BA",
+    500: "BAACAgQAAxkBAANTZ65hO01VjYtbcRdWzu4q3ZXhbUMAAiEVAAK4hXFRhpJ3Fxu4DaU2BA",
+    1000: "BAACAgQAAxkBAAM4Z65g2S0WiMdVd7Ian8V0OZXfFGoAAiMVAAK4hXFRONGfYWcnLqk2BA"
 }
 
 # 📌 Ottenere il file_id di un video
