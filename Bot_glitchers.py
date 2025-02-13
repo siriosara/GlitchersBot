@@ -12,15 +12,21 @@ CHANNEL_ID = -1001716099490
 CHANNEL_LINK = "https://t.me/+mcc19N6Idbs1OWJk"
 
 # 🔹 Database XP (simulato con un dizionario per ora)
-user_xp = {}  # {user_id: {"xp": 0, "last_active": data, "video_sbloccato": 0}}
+user_xp = {}  # {user_id: {"xp": 0, "last_active": data, "video_sbloccato": 0, "reaction_posts": set(), "viewed_posts": set()}}
 user_registered = set()  # Utenti che hanno accettato di partecipare
 
 # 🔹 Soglie XP e Video Premi
 video_premi = {
-    250: "video_parte1.mp4",
-    500: "video_parte2.mp4",
-    1000: "video_parte3.mp4"
+    250: "FILE_ID_PARTE_1",
+    500: "FILE_ID_PARTE_2",
+    1000: "FILE_ID_PARTE_3"
 }
+
+# 📌 Ottenere il file_id di un video
+@bot.message_handler(content_types=['video'])
+def get_file_id(message):
+    file_id = message.video.file_id
+    bot.reply_to(message, f"📌 File ID: `{file_id}`")
 
 # 📌 1. Benvenuto e Registrazione
 @bot.message_handler(commands=["start"])
@@ -49,7 +55,10 @@ def register_user(message):
     user_id = message.from_user.id
     if user_id not in user_registered:
         user_registered.add(user_id)
-        user_xp[user_id] = {"xp": 0, "last_active": datetime.now(), "video_sbloccato": 0}
+        user_xp[user_id] = {
+            "xp": 0, "last_active": datetime.now(), 
+            "video_sbloccato": 0, "reaction_posts": set(), "viewed_posts": set()
+        }
         bot.send_message(
             user_id,
             "✅ Sei dentro! Inizia a interagire con i post per guadagnare XP e sbloccare i tuoi premi!\n\n"
@@ -66,16 +75,33 @@ def check_xp(message):
     else:
         bot.send_message(user_id, "⚠️ Non sei registrato nel sistema XP. Rispondi 'SI' per entrare!")
 
-# 📌 3. Tracking XP ogni ora
+# 📌 3. Comando /classifica per vedere la distribuzione degli XP
+@bot.message_handler(commands=["classifica"])
+def leaderboard(message):
+    xp_bands = {f"{i}-{i+50} XP": 0 for i in range(0, 1000, 50)}
+
+    for user_id in user_xp:
+        xp = user_xp[user_id]["xp"]
+        band = f"{(xp // 50) * 50}-{((xp // 50) * 50) + 50} XP"
+        if band in xp_bands:
+            xp_bands[band] += 1
+
+    leaderboard_text = "📊 **Classifica XP** 📊\n"
+    for band, count in xp_bands.items():
+        if count > 0:
+            leaderboard_text += f"🔹 {band}: {count} utenti\n"
+
+    bot.send_message(message.chat.id, leaderboard_text)
+
+# 📌 4. Tracking XP ogni ora
 def update_xp():
     while True:
         time.sleep(3600)  # Attendi 1 ora
         for user_id in user_xp:
-            user_xp[user_id]["xp"] += 10  # Simuliamo reaction + visualizzazione (+5 +5)
             check_rewards(user_id)
         print("✅ XP aggiornato per tutti gli utenti!")
 
-# 📌 4. Controllo e invio dei premi sbloccati
+# 📌 5. Controllo e invio dei premi sbloccati
 def check_rewards(user_id):
     xp = user_xp[user_id]["xp"]
     last_video = user_xp[user_id]["video_sbloccato"]
@@ -83,10 +109,33 @@ def check_rewards(user_id):
     for threshold, video_file in video_premi.items():
         if xp >= threshold and last_video < threshold:
             user_xp[user_id]["video_sbloccato"] = threshold
-            bot.send_message(user_id, f"🎉 Hai sbloccato un nuovo premio! Guarda il video:")
-            bot.send_document(user_id, open(video_file, "rb"))
+            bot.send_message(user_id, "🎉 Hai sbloccato un nuovo premio! Guarda il video:")
+            bot.send_video(user_id, video_file)
 
-# 📌 5. Messaggio motivazionale ogni 7 giorni
+# 📌 6. Controllo Reaction e Visualizzazione (max 10 XP per post)
+@bot.message_handler(content_types=["reaction"])
+def handle_reaction(message):
+    user_id = message.from_user.id
+    post_id = message.message_id
+
+    if user_id in user_xp:
+        if post_id not in user_xp[user_id]["reaction_posts"]:
+            user_xp[user_id]["xp"] += 5
+            user_xp[user_id]["reaction_posts"].add(post_id)
+            bot.send_message(user_id, "✅ Hai guadagnato +5 XP per la reaction!")
+
+@bot.message_handler(content_types=["photo", "video", "document"])
+def handle_view(message):
+    user_id = message.from_user.id
+    post_id = message.message_id
+
+    if user_id in user_xp:
+        if post_id not in user_xp[user_id]["viewed_posts"]:
+            user_xp[user_id]["xp"] += 5
+            user_xp[user_id]["viewed_posts"].add(post_id)
+            bot.send_message(user_id, "✅ Hai guadagnato +5 XP per la visualizzazione!")
+
+# 📌 7. Messaggio motivazionale ogni 7 giorni
 def send_motivation():
     while True:
         time.sleep(604800)  # Attendi 7 giorni
@@ -95,7 +144,7 @@ def send_motivation():
             if datetime.now() - last_active > timedelta(days=7):
                 bot.send_message(user_id, "🔥 Hey @user, ti sei fermato? Continua a guadagnare XP per sbloccare i tuoi premi!")
 
-# 📌 6. Restrizione per chi lascia il canale
+# 📌 8. Restrizione per chi lascia il canale
 @bot.message_handler(func=lambda message: True)
 def check_membership(message):
     user_id = message.from_user.id
@@ -121,3 +170,4 @@ threading.Thread(target=send_motivation).start()
 # Avvia il bot
 print("🚀 Bot Glitchers XP attivo...")
 bot.polling()
+    
