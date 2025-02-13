@@ -7,7 +7,7 @@ TOKEN = "7665636304:AAEsWwMX7QG4tVoC3IufpSjL-ZMjfspIphY"
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
 # 🔹 ID del canale Glitchers
-CHANNEL_ID = -1001668330329  
+CHANNEL_ID = -1001716099490  
 CHANNEL_LINK = "https://t.me/+mcc19N6Idbs1OWJk"
 
 # 🔹 Database XP (simulato con un dizionario per ora)
