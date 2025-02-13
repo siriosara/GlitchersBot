@@ -1,5 +1,6 @@
 import telebot
 import time
+import threading
 from datetime import datetime, timedelta
 
 # 🔹 Inserisci il tuo Token API qui
@@ -14,8 +15,12 @@ CHANNEL_LINK = "https://t.me/+mcc19N6Idbs1OWJk"
 user_xp = {}  # {user_id: {"xp": 0, "last_active": data, "video_sbloccato": 0}}
 user_registered = set()  # Utenti che hanno accettato di partecipare
 
-# 🔹 Video caricati (da sostituire con ID reali)
-video_premi = {250: "video_parte1.mp4", 500: "video_parte2.mp4", 1000: "video_parte3.mp4"}
+# 🔹 Soglie XP e Video Premi
+video_premi = {
+    250: "video_parte1.mp4",
+    500: "video_parte2.mp4",
+    1000: "video_parte3.mp4"
+}
 
 # 📌 1. Benvenuto e Registrazione
 @bot.message_handler(commands=["start"])
@@ -26,7 +31,17 @@ def send_welcome(message):
     else:
         bot.send_message(
             user_id,
-            "🔥 Vuoi entrare a far parte della community GLITCHERS? Avrai un meritato premio...\n\nRispondi con **SI** o **NO**."
+            "🔥 Vuoi entrare a far parte della community GLITCHERS? Avrai un meritato premio...\n\n"
+            "📌 Ecco come funziona:\n"
+            "- Guadagna XP con le reaction ai post (+5 XP)\n"
+            "- Guarda i media nei post (+5 XP)\n"
+            "- Ogni ora il tuo XP viene aggiornato automaticamente\n"
+            "- Quando raggiungi una soglia, ricevi una parte del video esclusivo!\n\n"
+            "🎯 **Soglie XP:**\n"
+            "✅ 250 XP → Prima parte del video\n"
+            "✅ 500 XP → Seconda parte del video\n"
+            "✅ 1000 XP → Video completo\n\n"
+            "👉 Rispondi con **SI** per partecipare!"
         )
 
 @bot.message_handler(func=lambda message: message.text.lower() == "si")
@@ -37,12 +52,8 @@ def register_user(message):
         user_xp[user_id] = {"xp": 0, "last_active": datetime.now(), "video_sbloccato": 0}
         bot.send_message(
             user_id,
-            "✅ Sei dentro! Ecco come guadagnare XP:\n"
-            "- Mettendo una reaction ai post (+5 XP)\n"
-            "- Guardando i media nei post (+5 XP)\n"
-            "- I progressi vengono aggiornati ogni 24h.\n\n"
-            "Puoi verificare il tuo punteggio in qualsiasi momento con /status\n"
-            "Quando raggiungi una soglia, riceverai automaticamente il tuo premio!"
+            "✅ Sei dentro! Inizia a interagire con i post per guadagnare XP e sbloccare i tuoi premi!\n\n"
+            "🔍 Usa il comando **/status** per controllare i tuoi XP!"
         )
 
 # 📌 2. Comando /status per verificare gli XP
@@ -55,13 +66,14 @@ def check_xp(message):
     else:
         bot.send_message(user_id, "⚠️ Non sei registrato nel sistema XP. Rispondi 'SI' per entrare!")
 
-# 📌 3. Tracking XP Ogni 24h (reaction + visualizzazioni)
+# 📌 3. Tracking XP ogni ora
 def update_xp():
     while True:
-        time.sleep(86400)  # Attendi 24 ore
+        time.sleep(3600)  # Attendi 1 ora
         for user_id in user_xp:
             user_xp[user_id]["xp"] += 10  # Simuliamo reaction + visualizzazione (+5 +5)
             check_rewards(user_id)
+        print("✅ XP aggiornato per tutti gli utenti!")
 
 # 📌 4. Controllo e invio dei premi sbloccati
 def check_rewards(user_id):
@@ -103,7 +115,6 @@ def check_membership(message):
         )
 
 # 🚀 Avvio processi paralleli
-import threading
 threading.Thread(target=update_xp).start()
 threading.Thread(target=send_motivation).start()
 
