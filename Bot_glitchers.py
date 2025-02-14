@@ -2,7 +2,7 @@ import telebot
 import time
 import threading
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from flask import Flask, request
 
 # 🔹 Inserisci il tuo Token API qui
@@ -14,19 +14,6 @@ bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 CHANNEL_ID = -1001716099490  
 CHANNEL_LINK = "https://t.me/+mcc19N6Idbs1OWJk"
 
-# 🔹 Webhook URL
-WEBHOOK_URL = "https://worker-production-566f.up.railway.app"
-
-# 🔹 Flask per il Webhook
-app = Flask(__name__)
-
-@app.route(f"/{TOKEN}", methods=["POST"])
-def receive_update():
-    json_str = request.get_data().decode("UTF-8")
-    update = telebot.types.Update.de_json(json_str)
-    bot.process_new_updates([update])
-    return "!", 200
-
 # 🔹 File per la memorizzazione dei dati persistenti
 database_file = "user_data.json"
 
@@ -34,12 +21,19 @@ database_file = "user_data.json"
 user_xp = {}
 user_registered = set()
 
-# 🔹 Soglie XP e Video Premi
-video_premi = {
-    250: "BAACAgQAAxkBAANRZ65g5avV2vGeKWB2sB7rYpL-z3QAAhYVAAK4hXFRQOWBHIJF29E2BA",
-    500: "BAACAgQAAxkBAANTZ65hO01VjYtbcRdWzu4q3ZXhbUMAAiEVAAK4hXFRhpJ3Fxu4DaU2BA",
-    1000: "BAACAgQAAxkBAAM4Z65g2S0WiMdVd7Ian8V0OZXfFGoAAiMVAAK4hXFRONGfYWcnLqk2BA"
-}
+# 🔹 Flask Web Server per Railway
+app = Flask(__name__)
+
+@app.route("/", methods=["GET"])
+def home():
+    return "Glitchers Bot is running!"
+
+@app.route(f"/{TOKEN}", methods=["POST"])
+def webhook():
+    json_str = request.get_data().decode("UTF-8")
+    update = telebot.types.Update.de_json(json_str)
+    bot.process_new_updates([update])
+    return "OK", 200
 
 # 🔹 Caricare i dati salvati
 def load_data():
@@ -115,8 +109,7 @@ def list_commands(message):
 def total_users(message):
     if message.from_user.id == OWNER_ID:
         total = len(user_registered)
-        active = sum(1 for user in user_registered if bot.get_chat_member(CHANNEL_ID, user).status in ["member", "administrator", "creator"])
-        bot.send_message(message.chat.id, f"📊 Utenti registrati: {total}\n🔹 Ancora nel canale: {active}")
+        bot.send_message(message.chat.id, f"📊 Utenti registrati: {total}")
 
 # 🔹 Comando per inviare DM a tutti gli utenti
 @bot.message_handler(commands=["dm"])
@@ -136,13 +129,13 @@ def auto_save():
         time.sleep(600)  # Salva ogni 10 minuti
         save_data()
 
-# 🚀 Avvio processi paralleli
-threading.Thread(target=auto_save, daemon=True).start()
-
-# 🔹 Imposta il Webhook
-bot.remove_webhook()
-bot.set_webhook(url=f"{WEBHOOK_URL}/{TOKEN}")
-
-# 🔹 Avvia il server Flask
+# 🔹 Avvia il loop di Flask e Polling in parallelo
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    threading.Thread(target=auto_save, daemon=True).start()
+    
+    # Imposta Webhook per Railway
+    bot.remove_webhook()
+    bot.set_webhook(url="https://worker-production-566f.up.railway.app/" + TOKEN)
+    
+    app.run(host="0.0.0.0", port=8080)
+    
