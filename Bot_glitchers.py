@@ -1,4 +1,3 @@
-import os
 import telebot
 import time
 import threading
@@ -6,10 +5,10 @@ import json
 from datetime import datetime
 from flask import Flask, request
 
-# 🔹 Recupera il Token dalla variabile d’ambiente
-TOKEN = os.getenv("7665636304:AAEsWwMX7QG4tVoC3IufpSjL-ZMjfspIphY")
-if not TOKEN:
-    raise ValueError("❌ ERRORE: TOKEN non trovato nelle variabili d'ambiente!")
+# 🔹 Token e variabili di configurazione
+TOKEN = "7665636304:AAEsWwMX7QG4tVoC3IufpSjL-ZMjfspIphY"
+WEBHOOK_URL = "https://worker-production-566f.up.railway.app"
+PORT = 8080
 
 OWNER_ID = 123456789  # Sostituisci con il tuo Telegram ID
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
@@ -106,9 +105,7 @@ if __name__ == "__main__":
     
     # Imposta Webhook per Railway
     bot.remove_webhook()
-    bot.set_webhook(url=f"{os.getenv('WEBHOOK_URL')}/{TOKEN}")
+    bot.set_webhook(url=f"{WEBHOOK_URL}/{TOKEN}")
     
-    # Usa la variabile di ambiente PORT per Railway
-    PORT = int(os.getenv("PORT", 8080))
     app.run(host="0.0.0.0", port=PORT)
     
