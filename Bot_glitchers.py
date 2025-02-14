@@ -125,4 +125,5 @@ def auto_save():
 # 🚀 Avvio processi paralleli
 threading.Thread(target=auto_save, daemon=True).start()
 print("🚀 Bot Glitchers XP attivo...")
+bot.remove_webhook()
 bot.polling(none_stop=True)
