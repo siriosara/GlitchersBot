@@ -3,6 +3,7 @@ import time
 import threading
 import json
 from datetime import datetime, timedelta
+from flask import Flask, request
 
 # 🔹 Inserisci il tuo Token API qui
 TOKEN = "7665636304:AAEsWwMX7QG4tVoC3IufpSjL-ZMjfspIphY"
@@ -12,6 +13,19 @@ bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 # 🔹 ID del canale Glitchers
 CHANNEL_ID = -1001716099490  
 CHANNEL_LINK = "https://t.me/+mcc19N6Idbs1OWJk"
+
+# 🔹 Webhook URL
+WEBHOOK_URL = "https://worker-production-566f.up.railway.app"
+
+# 🔹 Flask per il Webhook
+app = Flask(__name__)
+
+@app.route(f"/{TOKEN}", methods=["POST"])
+def receive_update():
+    json_str = request.get_data().decode("UTF-8")
+    update = telebot.types.Update.de_json(json_str)
+    bot.process_new_updates([update])
+    return "!", 200
 
 # 🔹 File per la memorizzazione dei dati persistenti
 database_file = "user_data.json"
@@ -124,6 +138,11 @@ def auto_save():
 
 # 🚀 Avvio processi paralleli
 threading.Thread(target=auto_save, daemon=True).start()
-print("🚀 Bot Glitchers XP attivo...")
+
+# 🔹 Imposta il Webhook
 bot.remove_webhook()
-bot.polling(none_stop=True)
+bot.set_webhook(url=f"{WEBHOOK_URL}/{TOKEN}")
+
+# 🔹 Avvia il server Flask
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080, debug=True)
