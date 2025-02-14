@@ -1,3 +1,4 @@
+import os
 import telebot
 import time
 import threading
@@ -90,39 +91,6 @@ def register_user(message):
         save_data()
         bot.send_message(user_id, "✅ Sei registrato! Inizia a guadagnare XP per sbloccare i premi! 🏆")
 
-# 🔹 Comandi amministrativi (solo OWNER_ID)
-@bot.message_handler(commands=["lista_comandi"])
-def list_commands(message):
-    if message.from_user.id == OWNER_ID:
-        bot.send_message(message.chat.id, "📌 **Lista comandi amministrativi:**\n"
-            "- /totale → Utenti totali e ancora nel canale\n"
-            "- /classifica → Distribuzione XP\n"
-            "- /premi_riscossi → Lista utenti con premi riscossi\n"
-            "- /attivi_oggi → Numero utenti attivi oggi\n"
-            "- /ultimi_iscritti → Ultimi 10 utenti registrati\n"
-            "- /reset_utente @username → Resetta XP di un utente\n"
-            "- /log_attività → Ultime azioni registrate\n"
-            "- /dm [messaggio] → Invia DM a tutti gli utenti")
-
-# 🔹 Comando /totale per utenti registrati vs attivi nel canale
-@bot.message_handler(commands=["totale"])
-def total_users(message):
-    if message.from_user.id == OWNER_ID:
-        total = len(user_registered)
-        bot.send_message(message.chat.id, f"📊 Utenti registrati: {total}")
-
-# 🔹 Comando per inviare DM a tutti gli utenti
-@bot.message_handler(commands=["dm"])
-def send_dm(message):
-    if message.from_user.id == OWNER_ID:
-        text = message.text.replace("/dm", "").strip()
-        for user in user_registered:
-            try:
-                bot.send_message(user, text)
-            except:
-                continue
-        bot.send_message(message.chat.id, "✅ Messaggio inviato a tutti gli utenti!")
-
 # 🔹 Loop per il salvataggio periodico dei dati
 def auto_save():
     while True:
@@ -135,7 +103,9 @@ if __name__ == "__main__":
     
     # Imposta Webhook per Railway
     bot.remove_webhook()
-    bot.set_webhook(url="https://worker-production-566f.up.railway.app/" + TOKEN)
+    bot.set_webhook(url=f"https://worker-production-566f.up.railway.app/{TOKEN}")
     
-    app.run(host="0.0.0.0", port=8080)
+    # Usa la variabile di ambiente PORT per Railway
+    PORT = int(os.getenv("PORT", 8080))
+    app.run(host="0.0.0.0", port=PORT)
     
