@@ -5,16 +5,17 @@ import json
 from datetime import datetime, timedelta
 from flask import Flask, request
 
-# 🔹 Configurazione del Token e del Webhook
+# 🔹 Inserisci il tuo Token API qui
 TOKEN = "7665636304:AAEsWwMX7QG4tVoC3IufpSjL-ZMjfspIphY"
-WEBHOOK_URL = "https://worker-production-566f.up.railway.app"
 OWNER_ID = 123456789  # Sostituisci con il tuo Telegram ID
-
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
 # 🔹 ID del canale Glitchers
 CHANNEL_ID = -1001716099490  
 CHANNEL_LINK = "https://t.me/+mcc19N6Idbs1OWJk"
+
+# 🔹 Webhook URL
+WEBHOOK_URL = "https://worker-production-566f.up.railway.app"
 
 # 🔹 Flask per il Webhook
 app = Flask(__name__)
@@ -24,10 +25,12 @@ def receive_update():
     json_str = request.get_data().decode("UTF-8")
     update = telebot.types.Update.de_json(json_str)
     bot.process_new_updates([update])
-    return "OK", 200
+    return "!", 200
+
+# 🔹 File per la memorizzazione dei dati persistenti
+database_file = "user_data.json"
 
 # 🔹 Database XP
-database_file = "user_data.json"
 user_xp = {}
 user_registered = set()
 
@@ -45,8 +48,7 @@ def load_data():
         with open(database_file, "r") as f:
             data = json.load(f)
             user_xp = data.get("user_xp", {})
-            user_registered = set(data.get("user_registered", []
-            ))
+            user_registered = set(data.get("user_registered", []))
     except FileNotFoundError:
         save_data()
 
@@ -141,7 +143,27 @@ threading.Thread(target=auto_save, daemon=True).start()
 bot.remove_webhook()
 bot.set_webhook(url=f"{WEBHOOK_URL}/{TOKEN}")
 
-# 🔹 Avvia il server Flask
+# 🔹 Avvia il server con Gunicorn
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    from gunicorn.app.base import BaseApplication
+
+    class GunicornApp(BaseApplication):
+        def __init__(self, app, options=None):
+            self.options = options or {}
+            self.application = app
+            super().__init__()
+
+        def load_config(self):
+            for key, value in self.options.items():
+                if key in self.cfg.settings and value is not None:
+                    self.cfg.set(key, value)
+
+        def load(self):
+            return self.application
+
+    options = {
+        "bind": "0.0.0.0:8080",
+        "workers": 4
+    }
+    GunicornApp(app, options).run()
     
