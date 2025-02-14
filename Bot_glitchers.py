@@ -1,3 +1,4 @@
+import os
 import telebot
 import time
 import threading
@@ -5,10 +6,13 @@ import json
 from datetime import datetime
 from flask import Flask, request
 
-# 🔹 Token e variabili di configurazione
-TOKEN = "7665636304:AAEsWwMX7QG4tVoC3IufpSjL-ZMjfspIphY"
-WEBHOOK_URL = "https://worker-production-566f.up.railway.app"
-PORT = 8080
+# 🔹 Impostazione delle variabili d'ambiente
+TOKEN = "7665636304:AAEsWwMX7QG4tVoC3IufpSjL-ZMjfspIphY"  # Token Telegram
+WEBHOOK_URL = "https://web-production-29cf.up.railway.app"  # URL corretto del webhook
+PORT = 8080  # Porta su cui Railway esegue l'app
+
+if not TOKEN:
+    raise ValueError("❌ ERRORE: TOKEN non trovato nelle variabili d'ambiente!")
 
 OWNER_ID = 123456789  # Sostituisci con il tuo Telegram ID
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
@@ -33,14 +37,10 @@ def home():
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
-    try:
-        json_str = request.get_data().decode("UTF-8")
-        update = telebot.types.Update.de_json(json_str)
-        bot.process_new_updates([update])
-        return "OK", 200
-    except Exception as e:
-        print(f"❌ ERRORE Webhook: {e}")
-        return "ERROR", 500
+    json_str = request.get_data().decode("UTF-8")
+    update = telebot.types.Update.de_json(json_str)
+    bot.process_new_updates([update])
+    return "OK", 200
 
 # 🔹 Caricare i dati salvati
 def load_data():
@@ -109,10 +109,8 @@ if __name__ == "__main__":
     
     # Imposta Webhook per Railway
     bot.remove_webhook()
-bot.set_webhook(url=f"https://web-production-29cf.up.railway.app/{TOKEN}")
+    bot.set_webhook(url=f"{WEBHOOK_URL}/{TOKEN}")
     
-    try:
-        app.run(host="0.0.0.0", port=PORT)
-    except Exception as e:
-        print(f"❌ ERRORE: {e}")
-        
+    # Avvio server Flask su Railway
+    app.run(host="0.0.0.0", port=PORT)
+    
