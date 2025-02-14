@@ -109,7 +109,7 @@ if __name__ == "__main__":
     
     # Imposta Webhook per Railway
     bot.remove_webhook()
-    bot.set_webhook(url=f"{WEBHOOK_URL}/{TOKEN}")
+bot.set_webhook(url=f"https://web-production-29cf.up.railway.app/{TOKEN}")
     
     print("🚀 Avviando Flask server...")
     try:
