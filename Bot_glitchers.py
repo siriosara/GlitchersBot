@@ -6,15 +6,21 @@ import json
 from datetime import datetime
 from flask import Flask, request
 
-# 🔹 Impostazione delle variabili d'ambiente
-TOKEN = "7665636304:AAEsWwMX7QG4tVoC3IufpSjL-ZMjfspIphY"  # Token Telegram
-WEBHOOK_URL = "https://web-production-29cf.up.railway.app"  # URL corretto del webhook
-PORT = 8080  # Porta su cui Railway esegue l'app
+# 🔹 Token API del Bot
+TOKEN = os.getenv("7665636304:AAEsWwMX7QG4tVoC3IufpSjL-ZMjfspIphY")
 
 if not TOKEN:
     raise ValueError("❌ ERRORE: TOKEN non trovato nelle variabili d'ambiente!")
 
-OWNER_ID = 123456789  # Sostituisci con il tuo Telegram ID
+# 🔹 URL Webhook di Railway
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+
+if not WEBHOOK_URL:
+    raise ValueError("❌ ERRORE: WEBHOOK_URL non trovato nelle variabili d'ambiente!")
+
+# 🔹 ID del proprietario (modifica con il tuo ID Telegram)
+OWNER_ID = 123456789
+
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
 # 🔹 ID del canale Glitchers
@@ -110,7 +116,8 @@ if __name__ == "__main__":
     # Imposta Webhook per Railway
     bot.remove_webhook()
     bot.set_webhook(url=f"{WEBHOOK_URL}/{TOKEN}")
-    
-    # Avvio server Flask su Railway
+
+    # Avvia Flask
+    PORT = int(os.getenv("PORT", 8080))
     app.run(host="0.0.0.0", port=PORT)
     
