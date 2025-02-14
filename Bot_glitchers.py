@@ -33,10 +33,14 @@ def home():
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
-    json_str = request.get_data().decode("UTF-8")
-    update = telebot.types.Update.de_json(json_str)
-    bot.process_new_updates([update])
-    return "OK", 200
+    try:
+        json_str = request.get_data().decode("UTF-8")
+        update = telebot.types.Update.de_json(json_str)
+        bot.process_new_updates([update])
+        return "OK", 200
+    except Exception as e:
+        print(f"❌ ERRORE Webhook: {e}")
+        return "ERROR", 500
 
 # 🔹 Caricare i dati salvati
 def load_data():
@@ -107,5 +111,9 @@ if __name__ == "__main__":
     bot.remove_webhook()
     bot.set_webhook(url=f"{WEBHOOK_URL}/{TOKEN}")
     
-    app.run(host="0.0.0.0", port=PORT)
-    
+    print("🚀 Avviando Flask server...")
+    try:
+        app.run(host="0.0.0.0", port=PORT)
+    except Exception as e:
+        print(f"❌ ERRORE: {e}")
+        
