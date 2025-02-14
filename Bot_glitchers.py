@@ -111,7 +111,6 @@ if __name__ == "__main__":
     bot.remove_webhook()
 bot.set_webhook(url=f"https://web-production-29cf.up.railway.app/{TOKEN}")
     
-    print("🚀 Avviando Flask server...")
     try:
         app.run(host="0.0.0.0", port=PORT)
     except Exception as e:
