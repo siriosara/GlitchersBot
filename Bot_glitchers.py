@@ -107,5 +107,7 @@ while True:
     save_data()
     print("Database salvato.")
 
-# 🔹 Avvio bot
+bot.remove_webhook() print("✅ Webhook rimosso 
+con successo!")# 🔹 Avvio bot 
+
 bot.polling(none_stop=True)
