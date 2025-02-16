@@ -152,7 +152,6 @@ try:
 except Exception as e:
     print(f"Errore durante il polling: {e}")
 
-<<<<<<< HEAD
 # 🔹 Rimuove Webhook prima di avviare il bot
 bot.remove_webhook()
 print("Webhook rimosso con successo!")
