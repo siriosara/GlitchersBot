@@ -117,4 +117,4 @@ thread = threading.Thread(target=save_data_periodically, daemon=True)
 thread.start()
 
 # 🔹 Avvio bot 
-bot.polling(none_stop=True)
+bot.infinity_polling()
