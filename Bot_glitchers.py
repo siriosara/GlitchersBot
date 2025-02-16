@@ -113,4 +113,3 @@ print("✅ Webhook rimosso con successo!")
 # 🔹 Avvio bot 
 bot.polling(none_stop=True)
 
-Fix errore sintassi webhook
