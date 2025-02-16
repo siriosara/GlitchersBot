@@ -107,7 +107,10 @@ while True:
     save_data()
     print("Database salvato.")
 
-bot.remove_webhook() print("✅ Webhook rimosso 
-con successo!")# 🔹 Avvio bot 
+bot.remove_webhook()
+print("✅ Webhook rimosso con successo!")
 
+# 🔹 Avvio bot 
 bot.polling(none_stop=True)
+
+Fix errore sintassi webhook
