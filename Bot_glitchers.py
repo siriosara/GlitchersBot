@@ -101,14 +101,14 @@ def leaderboard(message):
     top_users = "\n".join([f"{i+1}. <b>{user[0]}</b>: {user[1]['xp']} XP" for i, user in enumerate(sorted_users[:10])])
     bot.send_message(message.chat.id, f"🏆 <b>Top 10 Utenti XP</b>:\n{top_users}", parse_mode="HTML")
 
+bot.remove_webhook()
+print("Webhook rimosso con successo!")
+
 # 🔹 Loop per il salvataggio dati
 while True:
     time.sleep(3600)  # Salva ogni ora
     save_data()
     print("Database salvato.")
-
-bot.remove_webhook()
-print("✅ Webhook rimosso con successo!")
 
 # 🔹 Avvio bot 
 bot.polling(none_stop=True)
