@@ -1,7 +1,6 @@
 import telebot
 import json
 import time
-import threading
 from datetime import datetime
 
 # 🔹 Token del bot e ID del canale
@@ -102,19 +101,26 @@ def leaderboard(message):
     top_users = "\n".join([f"{i+1}. <b>{user[0]}</b>: {user[1]['xp']} XP" for i, user in enumerate(sorted_users[:10])])
     bot.send_message(message.chat.id, f"🏆 <b>Top 10 Utenti XP</b>:\n{top_users}", parse_mode="HTML")
 
-# 🔹 Rimozione webhook
+# 🔹 Rimuove Webhook prima di avviare il bot
 bot.remove_webhook()
 print("Webhook rimosso con successo!")
 
-# 🔹 Avvio salvataggio dati in un thread separato
-def save_data_periodically():
+# 🔹 Loop per il salvataggio dati periodico
+def periodic_save():
     while True:
         time.sleep(3600)  # Salva ogni ora
         save_data()
         print("Database salvato.")
 
-thread = threading.Thread(target=save_data_periodically, daemon=True)
-thread.start()
+# 🔹 Avvio thread separato per il salvataggio dati
+import threading
+threading.Thread(target=periodic_save, daemon=True).start()
 
-# 🔹 Avvio bot 
-bot.infinity_polling()
+# 🔹 Avvio bot con gestione errori
+time.sleep(1)  # Aspetta un secondo per sicurezza
+
+try:
+    bot.polling(none_stop=True)
+except Exception as e:
+    print(f"Errore durante il polling: {e}")
+    
