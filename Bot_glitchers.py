@@ -9,8 +9,8 @@ from datetime import datetime
 # 🔹 Token del bot e ID del canale
 TOKEN = "7665636304:AAEsWwMX7QG4tVoC3IufpSjL-ZMjfspIphY"
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
-OWNER_ID = 5543012634  # ⚠️ Assicurati che sia il tuo vero ID
-CHANNEL_ID = -1001716099490
+OWNER_ID = 5543012634  # Tuo ID Telegram
+CHANNEL_ID = -1001716099490  # ID del canale
 CHANNEL_LINK = "https://t.me/+mcc19N6Idbs1OWJk"
 db_file = "user_data.json"
 
@@ -41,33 +41,47 @@ def save_data():
     with open(db_file, "w") as f:
         json.dump(data, f, indent=4)
 
-# 🔹 Controllo se l'utente è admin
-def is_admin(user_id):
-    return str(user_id) == str(OWNER_ID)
+# 🔹 Controllo iscrizione al canale
+def check_subscription(user_id):
+    try:
+        status = bot.get_chat_member(CHANNEL_ID, user_id).status
+        return status in ["member", "administrator", "creator"]
+    except:
+        return False
 
-# 🔹 Messaggio di benvenuto automatico
+# 🔹 Invio automatico messaggio di benvenuto a nuovi membri
 @bot.chat_member_handler()
-def welcome_message(member):
-    if member.new_chat_member.status in ["member", "administrator"]:
-        bot.send_message(member.chat.id, f"""
-🔥 Vuoi entrare a far parte della community GLITCHERS?
+def welcome_new_member(update):
+    if update.new_chat_member and not update.new_chat_member.user.is_bot:
+        user_id = update.new_chat_member.user.id
+        bot.send_message(user_id, 
+        "🔥 Vuoi entrare a far parte della community GLITCHERS?\n\n"
+        "📌 **Regole:**\n"
+        "- Reaction ai post: +5 XP (una volta per post)\n"
+        "- Visualizzazione media: +5 XP (una volta per post)\n"
+        "- Ogni ora il tuo XP viene aggiornato automaticamente\n"
+        "- Quando raggiungi una soglia, ricevi una parte del video esclusivo!\n\n"
+        "🎯 **Soglie XP:**\n"
+        "✅ 250 XP → Prima parte del video\n"
+        "✅ 500 XP → Seconda parte del video\n"
+        "✅ 1000 XP → Video completo\n\n"
+        "👉 Rispondi con **SI** per partecipare!")
 
-📌 **Regole:**
-- Reaction ai post: +5 XP (una volta per post)
-- Visualizzazione media: +5 XP (una volta per post)
-- Ogni ora il tuo XP viene aggiornato automaticamente
-- Quando raggiungi una soglia, ricevi una parte del video esclusivo!
+# 🔹 Comando /start
+@bot.message_handler(commands=["start"])
+def send_welcome(message):
+    user_id = str(message.from_user.id)
+    
+    if user_id not in data["user_xp"]:
+        data["user_xp"][user_id] = {"xp": 0, "video_sbloccato": 0}
+        if user_id not in data["user_registered"]:
+            data["user_registered"].append(user_id)
+        save_data()
+        bot.send_message(user_id, "✅ Sei registrato! Inizia a guadagnare XP per sbloccare i premi! 🎉")
+    else:
+        bot.send_message(user_id, "✅ Sei già registrato! Continua a guadagnare XP! 🎉")
 
-🎯 **Soglie XP:**
-✅ 250 XP → Prima parte del video
-✅ 500 XP → Seconda parte del video
-✅ 1000 XP → Video completo
-
-👀 utilizza il comando /status per verificare il tuo punteggio 
-👉 Rispondi con **SI** per partecipare!
-        """)
-
-# 🔹 Comando /status (unico disponibile per tutti)
+# 🔹 Comando /status (unico accessibile agli utenti normali)
 @bot.message_handler(commands=["status"])
 def check_status(message):
     user_id = str(message.from_user.id)
@@ -78,93 +92,79 @@ def check_status(message):
     else:
         bot.send_message(user_id, "❌ Non sei registrato. Usa /start per iscriverti.")
 
-# 🔹 Comando /dm (invia un messaggio a tutti gli utenti registrati)
+# 🔹 Comando /dm per inviare messaggi agli utenti registrati
 @bot.message_handler(commands=["dm"])
 def send_dm(message):
-    if not is_admin(message.from_user.id):
-        return
-    text = message.text.replace("/dm ", "")
+    if message.from_user.id != OWNER_ID:
+        return bot.send_message(message.chat.id, "⛔ Non hai i permessi per usare questo comando.")
+
+    text = message.text.replace("/dm", "").strip()
+    if not text:
+        return bot.send_message(message.chat.id, "⚠️ Usa il comando così: /dm [messaggio]")
+
     for user_id in data["user_registered"]:
         try:
             bot.send_message(user_id, text)
         except:
             pass
+    bot.send_message(message.chat.id, "✅ Messaggio inviato a tutti gli utenti registrati.")
 
-# 🔹 Comando /classifica
-@bot.message_handler(commands=["classifica"])
-def leaderboard(message):
-    if not is_admin(message.from_user.id):
-        return
-    sorted_users = sorted(data["user_xp"].items(), key=lambda x: x[1]["xp"], reverse=True)
-    top_users = "\n".join([f"{i+1}. @{user[0]}: {user[1]['xp']} XP" for i, user in enumerate(sorted_users[:10])])
-    bot.send_message(message.chat.id, f"🏆 <b>Top 10 Utenti XP</b>:\n{top_users}", parse_mode="HTML")
+# 🔹 Comando /reset_utente con username
+@bot.message_handler(commands=["reset_utente"])
+def reset_user(message):
+    if message.from_user.id != OWNER_ID:
+        return bot.send_message(message.chat.id, "⛔ Non hai i permessi per usare questo comando.")
 
-# 🔹 Comando /ban
+    try:
+        username = message.text.split()[1].replace("@", "")
+        for user_id, user_data in data["user_xp"].items():
+            if user_data.get("username") == username:
+                user_data["xp"] = 0
+                user_data["video_sbloccato"] = 0
+                save_data()
+                bot.send_message(message.chat.id, f"✅ XP di @{username} azzerato con successo!")
+                return
+        bot.send_message(message.chat.id, "❌ Utente non trovato.")
+    except IndexError:
+        bot.send_message(message.chat.id, "⚠️ Usa il comando così: /reset_utente @username")
+
+# 🔹 Comando /ban con username
 @bot.message_handler(commands=["ban"])
 def ban_user(message):
-    if not is_admin(message.from_user.id):
-        return
+    if message.from_user.id != OWNER_ID:
+        return bot.send_message(message.chat.id, "⛔ Non hai i permessi per usare questo comando.")
+
     try:
-        user_id = int(message.text.split()[1])
-        if str(user_id) in data["user_registered"]:
-            data["user_registered"].remove(str(user_id))
-            del data["user_xp"][str(user_id)]
-            save_data()
-            bot.kick_chat_member(CHANNEL_ID, user_id)
-            bot.send_message(message.chat.id, f"🚨 Utente {user_id} bannato con successo!")
-    except:
-        bot.send_message(message.chat.id, "⚠️ Usa il comando così: /ban user_id")
-
-# 🔹 Altri comandi admin
-@bot.message_handler(commands=["totale", "premi_riscossi", "attivi_oggi", "ultimi_iscritti", "reset_utente", "log_attività"])
-def admin_commands(message):
-    if not is_admin(message.from_user.id):
-        return
-
-    cmd = message.text.split()[0][1:]
-
-    if cmd == "totale":
-        bot.send_message(message.chat.id, f"👥 Utenti registrati: {len(data['user_registered'])}")
-
-    elif cmd == "premi_riscossi":
-        redeemed = [f"🔹 @{user}" for user in data["user_xp"] if data["user_xp"][user]["video_sbloccato"] > 0]
-        response = "\n".join(redeemed) if redeemed else "Nessun utente ha riscattato premi."
-        bot.send_message(message.chat.id, response)
-
-    elif cmd == "attivi_oggi":
-        today_active = sum(1 for user in data["user_xp"] if data["user_xp"][user]["xp"] > 0)
-        bot.send_message(message.chat.id, f"📊 Utenti attivi oggi: {today_active}")
-
-    elif cmd == "ultimi_iscritti":
-        last_users = data["user_registered"][-10:]
-        response = "\n".join([f"🔹 @{user}" for user in last_users]) if last_users else "Nessun nuovo utente registrato."
-        bot.send_message(message.chat.id, response)
-
-    elif cmd == "reset_utente":
-        try:
-            username = message.text.split()[1]
-            if username in data["user_xp"]:
-                data["user_xp"][username]["xp"] = 0
-                data["user_xp"][username]["video_sbloccato"] = 0
+        username = message.text.split()[1].replace("@", "")
+        for user_id, user_data in data["user_xp"].items():
+            if user_data.get("username") == username:
+                data["user_registered"].remove(user_id)
+                del data["user_xp"][user_id]
                 save_data()
-                bot.send_message(message.chat.id, f"✅ XP di {username} azzerato con successo!")
-        except:
-            bot.send_message(message.chat.id, "⚠️ Usa il comando così: /reset_utente @username")
+                bot.kick_chat_member(CHANNEL_ID, int(user_id))
+                bot.send_message(message.chat.id, f"🚨 Utente @{username} bannato con successo!")
+                return
+        bot.send_message(message.chat.id, "❌ Utente non trovato.")
+    except IndexError:
+        bot.send_message(message.chat.id, "⚠️ Usa il comando così: /ban @username")
 
-# 🔹 Avvio Webhook
+# 🔹 Avvio Webhook per Railway
 bot.remove_webhook()
 time.sleep(1)
 bot.set_webhook(url=WEBHOOK_URL)
+print(f"✅ Webhook impostato su: {WEBHOOK_URL}")
 
-# 🔹 Creazione server Flask
+# 🔹 Creazione del server Flask per Webhook
 app = Flask(__name__)
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    update = telebot.types.Update.de_json(request.get_data().decode("utf-8"))
-    bot.process_new_updates([update])
-    return "OK", 200
+    if request.headers.get("content-type") == "application/json":
+        json_str = request.get_data().decode("utf-8")
+        update = telebot.types.Update.de_json(json_str)
+        bot.process_new_updates([update])
+        return "OK", 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-                
+                         
