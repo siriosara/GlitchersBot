@@ -59,7 +59,7 @@ def welcome_new_member(update):
         "📌 **Regole:**\n"
         "- Reaction ai post: +5 XP (una volta per post)\n"
         "- Visualizzazione media: +5 XP (una volta per post)\n"
-        "- Ogni ora il tuo XP viene aggiornato automaticamente\n"
+        "- Ogni ora il tuo XP viene aggiornato automaticamente e potrai verificare con il comando /status\n"
         "- Quando raggiungi una soglia, ricevi una parte del video esclusivo!\n\n"
         "🎯 **Soglie XP:**\n"
         "✅ 250 XP → Prima parte del video\n"
