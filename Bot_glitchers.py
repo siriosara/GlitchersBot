@@ -144,9 +144,29 @@ def periodic_save():
 import threading
 threading.Thread(target=periodic_save, daemon=True).start()
 
-try:
-    bot.remove_webhook()  # Rimuove il webhook all'avvio
-    time.sleep(1)  # Aspetta un secondo per sicurezza
-    bot.polling(none_stop=True)
-except Exception as e:
-    print(f"Errore durante il polling: {e}")
+import os
+from flask import Flask, request
+
+# 🔹 Configura Webhook per Railway
+WEBHOOK_URL = "https://worker-production-5371.up.railway.app/webhook"  # Modifica con il tuo URL Railway
+
+bot.remove_webhook()
+time.sleep(1)  # Sicurezza
+bot.set_webhook(worker-production-url=WEBHOOK_URL)
+
+print(f"✅ Webhook impostato su: {WEBHOOK_URL}")
+
+# 🔹 Creazione del server Flask per gestire le richieste di Telegram
+app = Flask(__name__)
+
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    if request.headers.get("content-type") == "application/json":
+        json_str = request.get_data().decode("utf-8")
+        update = telebot.types.Update.de_json(json_str)
+        bot.process_new_updates([update])
+        return "OK", 200
+        
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    
