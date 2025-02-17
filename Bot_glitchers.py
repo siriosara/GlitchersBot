@@ -133,9 +133,7 @@ def ban_user(message):
             bot.send_message(message.chat.id, "❌ Utente non trovato.")
     except (IndexError, ValueError):
         bot.send_message(message.chat.id, "⚠️ Usa il comando così: /ban user_id")
-# 🔹 Rimuove Webhook prima di avviare il bot
-bot.remove_webhook()
-print("Webhook rimosso con successo!")
+
 # Loop per il salvataggio dati periodico
 def periodic_save():
     while True:
@@ -145,32 +143,10 @@ def periodic_save():
 # Avvio thread separato per il salvataggio dati
 import threading
 threading.Thread(target=periodic_save, daemon=True).start()
-# Avvio bot con gestione errori
-time.sleep(1)  # Aspetta un secondo per sicurezza
-try:
-    bot.polling(none_stop=True)
-except Exception as e:
-    print(f"Errore durante il polling: {e}")
-
-# 🔹 Rimuove Webhook prima di avviare il bot
-bot.remove_webhook()
-print("Webhook rimosso con successo!")
-
-# 🔹 Loop per il salvataggio dati periodico
-def periodic_save():
-    while True:
-        time.sleep(3600)  # Salva ogni ora
-        save_data()
-        print("Database salvato.")
-
-# 🔹 Avvio thread separato per il salvataggio dati
-import threading
-threading.Thread(target=periodic_save, daemon=True).start()
-
-# 🔹 Avvio bot con gestione errori
-time.sleep(1)  # Aspetta un secondo per sicurezza
 
 try:
+    bot.remove_webhook()  # Rimuove il webhook all'avvio
+    time.sleep(1)  # Aspetta un secondo per sicurezza
     bot.polling(none_stop=True)
 except Exception as e:
     print(f"Errore durante il polling: {e}")
