@@ -72,14 +72,12 @@ def check_status(message):
     else:
         bot.send_message(user_id, "❌ Non sei registrato. Usa /start per iscriverti.")
 
-# 🔹 Comando /dm
+# 🔹 Comando /dm (ora invia un messaggio a tutti gli utenti registrati)
 @bot.message_handler(commands=["dm"])
 def send_dm(message):
-    user_id = str(message.from_user.id)
-    if user_id not in data["user_xp"]:
-        data["user_xp"][user_id] = {"xp": 0, "video_sbloccato": 0}
-        bot.send_message(user_id, "📩 Il tuo DM è stato registrato!")
-
+    if message.from_user.id != OWNER_ID:
+        return
+        
 # 🔹 Comando /classifica
 @bot.message_handler(commands=["classifica"])
 def leaderboard(message):
@@ -114,8 +112,9 @@ def active_today(message):
 @bot.message_handler(commands=["ultimi_iscritti"])
 def last_registered(message):
     last_users = data["user_registered"][-10:]
-    response = "\n".join([f"🔹 {user}" for user in last_users]) if last_users else "Nessun nuovo utente registrato."
+    response = "\n".join([f"🔹 @{data['user_xp'][user]['username']}" if user in data["user_xp"] else f"🔹 {user}" for user in last_users]) if last_users else "Nessun nuovo utente registrato."
     bot.send_message(message.chat.id, response)
+    
 
 # 🔹 Comando /reset_utente
 @bot.message_handler(commands=["reset_utente"])
