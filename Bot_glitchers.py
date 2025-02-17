@@ -9,7 +9,7 @@ from datetime import datetime
 # 🔹 Token del bot e ID del canale
 TOKEN = "7665636304:AAEsWwMX7QG4tVoC3IufpSjL-ZMjfspIphY" 
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
-OWNER_ID = 123456789  # Sostituisci con il tuo 
+OWNER_ID = 123456789  # Sostituisci con il tuo
 CHANNEL_ID = -1001716099490  # ID del canale
 CHANNEL_LINK = "https://t.me/+mcc19N6Idbs1OWJk" 
 db_file = "user_data.json"
@@ -19,21 +19,20 @@ WEBHOOK_URL = "https://worker-production-5371.up.railway.app/webhook"
 
 # 🔹 Caricare i dati salvati
 def load_data(): 
-    try: 
-        with open(db_file, "r") as f:
-            return json.load(f) 
-    except FileNotFoundError: 
-        return {
-            "user_xp": {},
-            "user_registered": []
-        }
+    if os.path.exists(db_file):
+        try:
+            with open(db_file, "r") as f:
+                return json.load(f) 
+        except json.JSONDecodeError:
+            return {"user_xp": {}, "user_registered": []}
+    return {"user_xp": {}, "user_registered": []}
 
 data = load_data()
 
 # 🔹 Salvataggio persistente
 def save_data(): 
     with open(db_file, "w") as f: 
-        json.dump(data, f)
+        json.dump(data, f, indent=4)
 
 # 🔹 Controllo iscrizione al canale
 def check_subscription(user_id):
@@ -54,11 +53,24 @@ def send_welcome(message):
 
     if user_id not in data["user_xp"]:
         data["user_xp"][user_id] = {"xp": 0, "video_sbloccato": 0}
-        data["user_registered"].append(user_id)
+        if user_id not in data["user_registered"]:
+            data["user_registered"].append(user_id)
         save_data()
         bot.send_message(user_id, "✅ Sei registrato! Inizia a guadagnare XP per sbloccare i premi! 🎉")
     else:
-        bot.send_message(message.chat.id, "❌ Non sei registrato. Usa /start per iscriverti.")
+        bot.send_message(user_id, "✅ Sei già registrato! Continua a guadagnare XP! 🎉")
+
+# 🔹 Comando /status
+@bot.message_handler(commands=["status"])
+def check_status(message):
+    user_id = str(message.from_user.id)
+
+    if user_id in data["user_xp"]:
+        xp = data["user_xp"][user_id]["xp"]
+        video_sbloccati = data["user_xp"][user_id]["video_sbloccato"]
+        bot.send_message(user_id, f"📊 Il tuo status:\n🔹 XP: {xp}\n🔹 Video sbloccati: {video_sbloccati}")
+    else:
+        bot.send_message(user_id, "❌ Non sei registrato. Usa /start per iscriverti.")
 
 # 🔹 Comando /dm
 @bot.message_handler(commands=["dm"])
@@ -143,23 +155,13 @@ def ban_user(message):
     except (IndexError, ValueError):
         bot.send_message(message.chat.id, "⚠️ Usa il comando così: /ban user_id")
 
-# 🔹 Loop per il salvataggio dati periodico
-def periodic_save():
-    while True:
-        time.sleep(3600)  # Salva ogni ora
-        save_data()
-        print("Database salvato.")
-
-# 🔹 Avvio thread separato per il salvataggio dati
-threading.Thread(target=periodic_save, daemon=True).start()
-
-# 🔹 Configura Webhook per Railway
+# 🔹 Avvio Webhook per Railway
 bot.remove_webhook()
-time.sleep(1)  # Sicurezza
+time.sleep(1)
 bot.set_webhook(url=WEBHOOK_URL)
 print(f"✅ Webhook impostato su: {WEBHOOK_URL}")
 
-# 🔹 Creazione del server Flask per gestire le richieste di Telegram
+# 🔹 Creazione del server Flask per Webhook
 app = Flask(__name__)
 
 @app.route("/webhook", methods=["POST"])
@@ -169,7 +171,6 @@ def webhook():
         update = telebot.types.Update.de_json(json_str)
         bot.process_new_updates([update])
         return "OK", 200
-        
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-    
