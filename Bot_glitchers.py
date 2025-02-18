@@ -125,15 +125,25 @@ def send_dm(message):
         else:
             bot.send_message(message.chat.id, "⚠️ Usa il comando così: /dm [messaggio] o rispondi a un messaggio.")
 
-@bot.message_handler(commands=["classifica", "totale", "premi_riscossi", "attivi_oggi", "ultimi_iscritti", "reset_utente", "ban"])
-@owner_only
-def admin_commands(message):
-    command = message.text.split()[0][1:]
+@bot.message_handler(commands=["classifica"])
+def leaderboard(message):
+    if message.from_user.id != OWNER_ID:
+        return bot.send_message(message.chat.id, "⛔ Non hai i permessi per usare questo comando.")
+
+    sorted_users = sorted(data["user_xp"].items(), key=lambda x: x[1]["xp"], reverse=True)
+    top_users = []
+
+    for i, (user_id, user_data) in enumerate(sorted_users[:10]):
+        try:
+            chat_member = bot.get_chat_member(user_id)
+            username = f"@{chat_member.user.username}" if chat_member.user.username else f"ID: {user_id}"
+        except:
+            username = f"ID: {user_id}"
+        top_users.append(f"{i+1}. {username}: {user_data['xp']} XP")
+
+    response = "🏆 <b>Top 10 Utenti XP</b>:\n" + "\n".join(top_users) if top_users else "Nessun utente in classifica."
+    bot.send_message(message.chat.id, response, parse_mode="HTML")
     
-    if command == "classifica":
-        sorted_users = sorted(data["user_xp"].items(), key=lambda x: x[1]["xp"], reverse=True)
-        top_users = "\n".join([f"{i+1}. {user}: {user_data['xp']} XP" for i, (user, user_data) in enumerate(sorted_users[:10])])
-        bot.send_message(message.chat.id, f"🏆 Classifica XP:\n{top_users}")
 
     elif command == "totale":
         bot.send_message(message.chat.id, f"👥 Utenti registrati: {len(data['user_registered'])}")
