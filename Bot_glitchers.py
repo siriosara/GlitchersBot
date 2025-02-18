@@ -145,9 +145,21 @@ def leaderboard(message):
     bot.send_message(message.chat.id, response, parse_mode="HTML")
     
 
-    elif command == "totale":
-        bot.send_message(message.chat.id, f"👥 Utenti registrati: {len(data['user_registered'])}")
+@bot.message_handler(commands=["totale"])
+def total_users(message):
+    if message.from_user.id != OWNER_ID:
+        return bot.send_message(message.chat.id, "⛔ Non hai i permessi per usare questo comando.")
 
+    total_registered = len(data["user_registered"])
+    still_in_channel = sum(1 for user_id in data["user_registered"] if check_subscription(user_id))
+
+    bot.send_message(
+        message.chat.id,
+        f"👥 <b>Utenti registrati nel bot:</b> {total_registered}\n"
+        f"📢 <b>Utenti ancora nel canale:</b> {still_in_channel}",
+        parse_mode="HTML"
+    )
+    
     elif command == "reset_utente":
         username = message.text.split()[1].replace("@", "")
         for user_id, user_data in data["user_xp"].items():
