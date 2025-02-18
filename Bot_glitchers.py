@@ -160,15 +160,28 @@ def total_users(message):
         parse_mode="HTML"
     )
     
-    elif command == "reset_utente":
-        username = message.text.split()[1].replace("@", "")
-        for user_id, user_data in data["user_xp"].items():
-            if user_data.get("username") == username:
-                data["user_xp"][user_id]["xp"] = 0
-                save_data()
-                bot.send_message(message.chat.id, f"✅ XP di @{username} azzerato!")
-                return
-        bot.send_message(message.chat.id, "❌ Utente non trovato.")
+@bot.message_handler(commands=["reset_utente"])
+def reset_user(message):
+    if message.from_user.id != OWNER_ID:
+        return bot.send_message(message.chat.id, "⛔ Non hai i permessi per usare questo comando.")
+
+    try:
+        username = message.text.split()[1].replace("@", "").strip()
+
+        # Cerca l'utente nel database
+        user_id = next((uid for uid, info in data["user_xp"].items() if info.get("username") == username), None)
+
+        if user_id:
+            data["user_xp"][user_id]["xp"] = 0
+            data["user_xp"][user_id]["video_sbloccato"] = 0
+            save_data()
+            bot.send_message(message.chat.id, f"✅ XP e premi di @{username} azzerati con successo!")
+        else:
+            bot.send_message(message.chat.id, f"❌ Utente @{username} non trovato nel database.")
+
+    except IndexError:
+        bot.send_message(message.chat.id, "⚠️ Usa il comando così: /reset_utente @username")
+        
 
 bot.remove_webhook()
 time.sleep(1)
