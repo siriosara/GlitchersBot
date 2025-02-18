@@ -93,26 +93,31 @@ def owner_only(func):
     return wrapper
 
 @bot.message_handler(commands=["dm"])
-@owner_only
 def send_dm(message):
-    if message.reply_to_message:
+    if message.from_user.id != OWNER_ID:
+        return bot.send_message(message.chat.id, "⛔ Non hai i permessi per usare questo comando.")
+
+    if message.reply_to_message:  
+        # Se il comando è una risposta a un messaggio, inoltra il messaggio a tutti gli utenti registrati
         for user_id in data["user_registered"]:
             try:
                 bot.copy_message(user_id, message.chat.id, message.reply_to_message.message_id)
-            except:
+            except Exception:
                 pass
-        bot.send_message(message.chat.id, "✅ Messaggio inviato a tutti gli utenti registrati.")
+        bot.send_message(message.chat.id, "✅ Messaggio inoltrato a tutti gli utenti registrati.")
     else:
         text = message.text.replace("/dm", "").strip()
         if text:
+            # Se il comando include del testo, invialo a tutti gli utenti
             for user_id in data["user_registered"]:
                 try:
                     bot.send_message(user_id, text)
-                except:
+                except Exception:
                     pass
             bot.send_message(message.chat.id, "✅ Messaggio inviato a tutti gli utenti registrati.")
         else:
-            bot.send_message(message.chat.id, "⚠️ Usa il comando così: /dm [messaggio] o rispondi a un messaggio.")
+            bot.send_message(message.chat.id, "⚠️ Usa il comando così: /dm [messaggio] o rispondi a un messaggio per inoltrarlo.")
+            
 
 # 🔹 Comando /classifica con username
 @bot.message_handler(commands=["classifica"])
