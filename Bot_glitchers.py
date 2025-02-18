@@ -42,22 +42,24 @@ def save_data():
         json.dump(data, f, indent=4)
 
 # 🔹 Invio automatico messaggio di benvenuto a nuovi membri
-@bot.chat_member_handler()
-def welcome_new_member(update):
-    if update.new_chat_member and not update.new_chat_member.user.is_bot:
-        user_id = update.new_chat_member.user.id
-        bot.send_message(user_id, 
-        "🔥 Vuoi entrare a far parte della community GLITCHERS?\n\n"
-        "📌 **Regole:**\n"
-        "- Reaction ai post: +5 XP (una volta per post)\n"
-        "- Visualizzazione media: +5 XP (una volta per post)\n"
-        "- Ogni ora il tuo XP viene aggiornato automaticamente e puoi verificare con il comando /status\n"
-        "- Quando raggiungi una soglia, ricevi una parte del video esclusivo!\n\n"
-        "🎯 **Soglie XP:**\n"
-        "✅ 250 XP → Prima parte del video\n"
-        "✅ 500 XP → Seconda parte del video\n"
-        "✅ 1000 XP → Video completo\n\n"
-        "👉 Rispondi con **SI** per partecipare!")
+@bot.message_handler(content_types=["new_chat_members"])
+def welcome_new_member(message):
+    for user in message.new_chat_members:
+        if not user.is_bot:
+            bot.send_message(
+                user.id, 
+                "🔥 Vuoi entrare a far parte della community GLITCHERS?\n\n"
+                "📌 **Regole:**\n"
+                "- Reaction ai post: +5 XP (una volta per post)\n"
+                "- Visualizzazione media: +5 XP (una volta per post)\n"
+                "- Ogni ora il tuo XP viene aggiornato automaticamente e puoi verificare con il comando /status\n"
+                "- Quando raggiungi una soglia, ricevi una parte del video esclusivo!\n\n"
+                "🎯 **Soglie XP:**\n"
+                "✅ 250 XP → Prima parte del video\n"
+                "✅ 500 XP → Seconda parte del video\n"
+                "✅ 1000 XP → Video completo\n\n"
+                "👉 Rispondi con **SI** per partecipare!"
+            )
 
 # 🔹 Comando /start
 @bot.message_handler(commands=["start"])
@@ -70,19 +72,6 @@ def send_welcome(message):
             data["user_registered"].append(user_id)
         save_data()
         bot.send_message(user_id, "✅ Sei registrato! Inizia a guadagnare XP per sbloccare i premi! 🎉")
-    
-    bot.send_message(user_id, 
-        "🔥 Vuoi entrare a far parte della community GLITCHERS?\n\n"
-        "📌 **Regole:**\n"
-        "- Reaction ai post: +5 XP (una volta per post)\n"
-        "- Visualizzazione media: +5 XP (una volta per post)\n"
-        "- Ogni ora il tuo XP viene aggiornato automaticamente e puoi verificare con il comando /status\n"
-        "- Quando raggiungi una soglia, ricevi una parte del video esclusivo!\n\n"
-        "🎯 **Soglie XP:**\n"
-        "✅ 250 XP → Prima parte del video\n"
-        "✅ 500 XP → Seconda parte del video\n"
-        "✅ 1000 XP → Video completo\n\n"
-        "👉 Rispondi con **SI** per partecipare!")
 
 # 🔹 Comando /status
 @bot.message_handler(commands=["status"])
@@ -125,17 +114,18 @@ def send_dm(message):
         else:
             bot.send_message(message.chat.id, "⚠️ Usa il comando così: /dm [messaggio] o rispondi a un messaggio.")
 
+# 🔹 Comando /classifica con username
 @bot.message_handler(commands=["classifica"])
 def leaderboard(message):
     if message.from_user.id != OWNER_ID:
-        return bot.send_message(message.chat.id, "⛔ Non hai i permessi per usare questo comando.")
+        return
 
     sorted_users = sorted(data["user_xp"].items(), key=lambda x: x[1]["xp"], reverse=True)
     top_users = []
 
     for i, (user_id, user_data) in enumerate(sorted_users[:10]):
         try:
-            chat_member = bot.get_chat_member(user_id)
+            chat_member = bot.get_chat_member(CHANNEL_ID, int(user_id))
             username = f"@{chat_member.user.username}" if chat_member.user.username else f"ID: {user_id}"
         except:
             username = f"ID: {user_id}"
@@ -143,6 +133,7 @@ def leaderboard(message):
 
     response = "🏆 <b>Top 10 Utenti XP</b>:\n" + "\n".join(top_users) if top_users else "Nessun utente in classifica."
     bot.send_message(message.chat.id, response, parse_mode="HTML")
+    
     
 
 @bot.message_handler(commands=["totale"])
@@ -160,24 +151,23 @@ def total_users(message):
         parse_mode="HTML"
     )
     
+# 🔹 Comando /reset_utente
 @bot.message_handler(commands=["reset_utente"])
 def reset_user(message):
     if message.from_user.id != OWNER_ID:
-        return bot.send_message(message.chat.id, "⛔ Non hai i permessi per usare questo comando.")
+        return
 
     try:
         username = message.text.split()[1].replace("@", "").strip()
-
-        # Cerca l'utente nel database
         user_id = next((uid for uid, info in data["user_xp"].items() if info.get("username") == username), None)
 
         if user_id:
             data["user_xp"][user_id]["xp"] = 0
             data["user_xp"][user_id]["video_sbloccato"] = 0
             save_data()
-            bot.send_message(message.chat.id, f"✅ XP e premi di @{username} azzerati con successo!")
+            bot.send_message(message.chat.id, f"✅ XP di @{username} azzerati con successo!")
         else:
-            bot.send_message(message.chat.id, f"❌ Utente @{username} non trovato nel database.")
+            bot.send_message(message.chat.id, f"❌ Utente @{username} non trovato.")
 
     except IndexError:
         bot.send_message(message.chat.id, "⚠️ Usa il comando così: /reset_utente @username")
