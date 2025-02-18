@@ -66,13 +66,15 @@ def send_welcome_message(user_id):
         "✅ 250 XP → Prima parte del video\n"
         "✅ 500 XP → Seconda parte del video\n"
         "✅ 1000 XP → Video completo\n\n"
-        "👉 il video diviso in tre parti è inedito e non presente in nessuna delle nostre piattaforme realizzto appositamente per questa esperienza")
-        "📤 ci saranno dei nuovi premi nella prossima stagione con nuovi video inediti\n"
-        "👍 collezionali tutti\n"
-        "🚫 se tutto ciò non è di tuo interesse blocca semplicemente il bot e ogniuno per la sua strada\n"
-        "❤️ rimani iscritto nel canale per poter partecipare altrimenti gli xp non saranno conteggiati\n"
-        "💌 periodicamente manderò dei dm zozzi come messaggio qui sul bot per coccolare i miei fan\n"
-
+        "👉 Il video diviso in tre parti è inedito e non presente in nessuna delle nostre piattaforme, "
+        "realizzato appositamente per questa esperienza.\n"
+        "📤 Ci saranno dei nuovi premi nella prossima stagione con nuovi video inediti.\n"
+        "👍 Collezionali tutti!\n"
+        "🚫 Se tutto ciò non è di tuo interesse, blocca semplicemente il bot e ognuno per la sua strada.\n"
+        "❤️ Rimani iscritto nel canale per poter partecipare, altrimenti gli XP non saranno conteggiati.\n"
+        "💌 Periodicamente manderò dei DM zozzi come messaggio qui sul bot per coccolare i miei fan."
+                    )
+    
 # 🔹 Messaggio di benvenuto automatico quando un utente entra nel canale
 @bot.chat_member_handler()
 def welcome_new_member(update):
