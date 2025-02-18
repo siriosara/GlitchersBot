@@ -14,7 +14,7 @@ CHANNEL_ID = -1001716099490  # ID del canale
 CHANNEL_LINK = "https://t.me/+mcc19N6Idbs1OWJk"
 
 # 🔹 Connessione a PostgreSQL
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = "postgresql://postgres:mKDdfErhEpUsFvdBxSaIrSDNgpAznPMd@postgres.railway.internal:5432/railway"
 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
 cur = conn.cursor()
 
