@@ -153,7 +153,6 @@ def leaderboard(message):
     response = "🏆 <b>Top 10 Utenti XP</b>:\n" + "\n".join(top_users) if top_users else "Nessun utente in classifica."
     bot.send_message(message.chat.id, response, parse_mode="HTML")
     
-    
 
 @bot.message_handler(commands=["totale"])
 def total_users(message):
