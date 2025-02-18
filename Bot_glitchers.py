@@ -156,23 +156,28 @@ def total_users(message):
         parse_mode="HTML"
     )
     
-# 🔹 Comando /reset_utente
 @bot.message_handler(commands=["reset_utente"])
 def reset_user(message):
     if message.from_user.id != OWNER_ID:
-        return
+        return bot.send_message(message.chat.id, "⛔ Non hai i permessi per usare questo comando.")
 
     try:
         username = message.text.split()[1].replace("@", "").strip()
-        user_id = next((uid for uid, info in data["user_xp"].items() if info.get("username") == username), None)
+
+        # Cerca l'utente nel database tramite username o ID
+        user_id = None
+        for uid, info in data["user_xp"].items():
+            if info.get("username") == username or uid == username:
+                user_id = uid
+                break
 
         if user_id:
             data["user_xp"][user_id]["xp"] = 0
             data["user_xp"][user_id]["video_sbloccato"] = 0
             save_data()
-            bot.send_message(message.chat.id, f"✅ XP di @{username} azzerati con successo!")
+            bot.send_message(message.chat.id, f"✅ XP e premi di @{username} azzerati con successo!")
         else:
-            bot.send_message(message.chat.id, f"❌ Utente @{username} non trovato.")
+            bot.send_message(message.chat.id, f"❌ Utente @{username} non trovato nel database.")
 
     except IndexError:
         bot.send_message(message.chat.id, "⚠️ Usa il comando così: /reset_utente @username")
