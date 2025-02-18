@@ -13,10 +13,16 @@ OWNER_ID = 5543012634  # Il tuo ID Telegram
 CHANNEL_ID = -1001716099490  # ID del canale
 CHANNEL_LINK = "https://t.me/+mcc19N6Idbs1OWJk"
 
-# 🔹 Connessione a PostgreSQL
-DATABASE_URL = "postgresql://postgres:mKDdfErhEpUsFvdBxSaIrSDNgpAznPMd@postgres.railway.internal:5432/railway"
-conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-cur = conn.cursor()
+# 🔹 Imposta direttamente l'URL del database
+DATABASE_URL = "postgresql://postgres:khnjqckSOVYzhdGPebuvMJHWoEjqoYKf@nozomi.proxy.rlwy.net:17240/railway"
+
+try:
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+    cur = conn.cursor()
+    print("✅ Connessione a PostgreSQL riuscita!")
+except Exception as e:
+    print(f"❌ Errore di connessione a PostgreSQL: {e}")
+    
 
 # 🔹 Creazione delle tabelle se non esistono
 cur.execute("""
