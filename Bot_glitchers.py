@@ -160,14 +160,23 @@ def total_users(message):
         return bot.send_message(message.chat.id, "⛔ Non hai i permessi per usare questo comando.")
 
     total_registered = len(data["user_registered"])
-    still_in_channel = sum(1 for user_id in data["user_registered"] if check_subscription(user_id))
+    
+    still_in_channel = 0
+    for user_id in data["user_registered"]:
+        try:
+            status = bot.get_chat_member(CHANNEL_ID, user_id).status
+            if status in ["member", "administrator", "creator"]:
+                still_in_channel += 1
+        except:
+            continue  # Se Telegram non restituisce info, ignora l'errore e continua
 
-    bot.send_message(
-        message.chat.id,
+    response = (
         f"👥 <b>Utenti registrati nel bot:</b> {total_registered}\n"
-        f"📢 <b>Utenti ancora nel canale:</b> {still_in_channel}",
-        parse_mode="HTML"
+        f"📢 <b>Utenti ancora nel canale:</b> {still_in_channel}"
     )
+    
+    bot.send_message(message.chat.id, response, parse_mode="HTML")
+    
     
 @bot.message_handler(commands=["reset_utente"])
 def reset_user(message):
