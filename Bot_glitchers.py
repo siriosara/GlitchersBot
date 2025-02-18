@@ -40,6 +40,33 @@ data = load_data()
 def save_data():
     with open(db_file, "w") as f:
         json.dump(data, f, indent=4)
+# 🔹 Dizionario per tracciare le interazioni con i post
+post_interactions = {}
+
+# 🔹 Funzione per tracciare le reaction e le visualizzazioni
+@bot.message_handler(content_types=["message", "channel_post"])
+def track_interactions(message):
+    if message.chat.id != CHANNEL_ID:
+        return  # Ignora messaggi che non provengono dal canale
+
+    user_id = str(message.from_user.id) if message.from_user else None
+    message_id = message.message_id
+
+    if not user_id or user_id not in data["user_xp"]:
+        return  # Ignora utenti non registrati
+
+    # Se l'utente ha già interagito con questo post, non assegna XP di nuovo
+    if (user_id, message_id) in post_interactions:
+        return
+
+    # Controlla se è una reaction o una visualizzazione e assegna XP
+    if message.content_type == "message":  # Reaction aggiunta
+        data["user_xp"][user_id]["xp"] += 5
+    elif message.content_type == "channel_post":  # Visualizzazione post
+        data["user_xp"][user_id]["xp"] += 5
+
+    post_interactions[(user_id, message_id)] = True  # Segna l'interazione
+    save_data()
 
 # 🔹 Invio automatico messaggio di benvenuto a nuovi membri
 @bot.message_handler(content_types=["new_chat_members"])
