@@ -61,17 +61,31 @@ def welcome_new_member(message):
                 "👉 Rispondi con **SI** per partecipare!"
             )
 
-# 🔹 Comando /start
 @bot.message_handler(commands=["start"])
 def send_welcome(message):
     user_id = str(message.from_user.id)
-    
+    username = message.from_user.username if message.from_user.username else None
+
     if user_id not in data["user_xp"]:
-        data["user_xp"][user_id] = {"xp": 0, "video_sbloccato": 0}
+        data["user_xp"][user_id] = {"xp": 0, "video_sbloccato": 0, "username": username}
         if user_id not in data["user_registered"]:
             data["user_registered"].append(user_id)
         save_data()
         bot.send_message(user_id, "✅ Sei registrato! Inizia a guadagnare XP per sbloccare i premi! 🎉")
+
+    bot.send_message(user_id, 
+        "🔥 Vuoi entrare a far parte della community GLITCHERS?\n\n"
+        "📌 **Regole:**\n"
+        "- Reaction ai post: +5 XP (una volta per post)\n"
+        "- Visualizzazione media: +5 XP (una volta per post)\n"
+        "- Ogni ora il tuo XP viene aggiornato automaticamente e puoi verificare con il comando /status\n"
+        "- Quando raggiungi una soglia, ricevi una parte del video esclusivo!\n\n"
+        "🎯 **Soglie XP:**\n"
+        "✅ 250 XP → Prima parte del video\n"
+        "✅ 500 XP → Seconda parte del video\n"
+        "✅ 1000 XP → Video completo\n\n"
+        "👉 Rispondi con **SI** per partecipare!")
+    
 
 # 🔹 Comando /status
 @bot.message_handler(commands=["status"])
@@ -162,12 +176,12 @@ def reset_user(message):
         return bot.send_message(message.chat.id, "⛔ Non hai i permessi per usare questo comando.")
 
     try:
-        username = message.text.split()[1].replace("@", "").strip()
+        username_or_id = message.text.split()[1].replace("@", "").strip()
 
-        # Cerca l'utente nel database tramite username o ID
+        # Cerca l'utente per username o ID
         user_id = None
         for uid, info in data["user_xp"].items():
-            if info.get("username") == username or uid == username:
+            if info.get("username") == username_or_id or uid == username_or_id:
                 user_id = uid
                 break
 
@@ -175,12 +189,13 @@ def reset_user(message):
             data["user_xp"][user_id]["xp"] = 0
             data["user_xp"][user_id]["video_sbloccato"] = 0
             save_data()
-            bot.send_message(message.chat.id, f"✅ XP e premi di @{username} azzerati con successo!")
+            bot.send_message(message.chat.id, f"✅ XP e premi di @{username_or_id} azzerati con successo!")
         else:
-            bot.send_message(message.chat.id, f"❌ Utente @{username} non trovato nel database.")
+            bot.send_message(message.chat.id, f"❌ Utente @{username_or_id} non trovato nel database.")
 
     except IndexError:
-        bot.send_message(message.chat.id, "⚠️ Usa il comando così: /reset_utente @username")
+        bot.send_message(message.chat.id, "⚠️ Usa il comando così: /reset_utente @username o /reset_utente user_id")
+        
         
 
 bot.remove_webhook()
