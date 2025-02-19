@@ -268,10 +268,11 @@ def webhook():
     if request.method == "GET":
         return "✅ Webhook attivo!", 200  # Per verificare che sia raggiungibile
 
-    try:
-        update = telebot.types.Update.de_json(request.get_data().decode("utf-8"))
-        bot.process_new_updates([update])
-        return "OK", 200
+    data = request.get_data().decode("utf-8")
+if not data:
+    return "Bad Request", 400
+    
+update = telebot.types.Update.de_json(data)
     except Exception as e:
         print(f"❌ Errore nel webhook: {e}")
         return "Errore interno", 500
