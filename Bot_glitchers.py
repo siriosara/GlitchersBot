@@ -277,12 +277,6 @@ def webhook():
         print(f"❌ Errore nel webhook: {e}")
         return "Errore interno", 500
         
-    if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
-    
-    class MyApplication(BaseApplication):
-        def load(self):
-            return app
-
+if __name__ == "__main__":
     print("🚀 Avvio del server Flask su Railway...")
-    MyApplication().run()
+    app.run(host="0.0.0.0", port=8080)
