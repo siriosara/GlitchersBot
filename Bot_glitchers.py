@@ -260,7 +260,8 @@ else:
 def test_command(message):
     bot.send_message(message.chat.id, "✅ Il bot è attivo e funzionante!")
 
-app = Flask(__name__)  # Definizione corretta di app
+from flask import Flask  
+app = Flask(__name__)  # Questa definizione è essenziale
 
 @app.route("/webhook", methods=["GET", "POST"])
 def webhook():
