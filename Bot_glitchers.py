@@ -261,6 +261,10 @@ def test_command(message):
     bot.send_message(message.chat.id, "✅ Il bot è attivo e funzionante!")
 
 # Controllo del webhook per debug
+from flask import Flask, request
+
+app = Flask(__name__)
+
 @app.route("/webhook", methods=["GET", "POST"])
 def webhook():
     if request.method == "GET":
