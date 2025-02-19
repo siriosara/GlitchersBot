@@ -144,28 +144,30 @@ def leaderboard(message):
     response = "🏆 <b>Top 10 Utenti XP</b>:\n" + "\n".join([f"{i+1}. @{user[0]}: {user[1]} XP" for i, user in enumerate(top_users)]) if top_users else "Nessun utente in classifica."
     bot.send_message(message.chat.id, response, parse_mode="HTML")
 
-# 🔹 Comando /reset_utente
 @bot.message_handler(commands=["reset_utente"])
 def reset_user(message):
     if message.from_user.id != OWNER_ID:
         return bot.send_message(message.chat.id, "⛔ Non hai i permessi per usare questo comando.")
 
     try:
+        # 🔹 Estrai username o ID dal comando
         username_or_id = message.text.split()[1].replace("@", "").strip()
+
+        # 🔹 Cerca l'utente nel database
         cur.execute("SELECT user_id FROM users WHERE username = %s OR CAST(user_id AS TEXT) = %s", (username_or_id, username_or_id))
         result = cur.fetchone()
 
         if result:
             user_id = result[0]
-            reset_xp(user_id)
+            cur.execute("UPDATE users SET xp = 0, video_sbloccato = 0 WHERE user_id = %s", (user_id,))
+            conn.commit()
             bot.send_message(message.chat.id, f"✅ XP e premi di @{username_or_id} azzerati con successo!")
         else:
             bot.send_message(message.chat.id, f"❌ Utente @{username_or_id} non trovato nel database.")
 
     except IndexError:
         bot.send_message(message.chat.id, "⚠️ Usa il comando così: /reset_utente @username o /reset_utente user_id")
-cur.execute("SELECT user_id FROM users WHERE username = %s OR CAST(user_id AS TEXT) = %s", (username_or_id, username_or_id))
-
+        
 # 🔹 Comando /totale
 @bot.message_handler(commands=["totale"])
 def total_users(message):
@@ -188,14 +190,16 @@ def active_today(message):
 
     bot.send_message(message.chat.id, f"📊 Utenti attivi oggi: {active_users}")
 
-# 🔹 Comando /dm
 @bot.message_handler(commands=["dm"])
 def send_dm(message):
     if message.from_user.id != OWNER_ID:
         return bot.send_message(message.chat.id, "⛔ Non hai i permessi per usare questo comando.")
 
+    cur.execute("SELECT user_id FROM users")
+    user_ids = cur.fetchall()
+
     if message.reply_to_message:
-        for user_id in cur.execute("SELECT user_id FROM users"):
+        for user_id in user_ids:
             try:
                 bot.copy_message(user_id[0], message.chat.id, message.reply_to_message.message_id)
             except:
@@ -204,7 +208,7 @@ def send_dm(message):
     else:
         text = message.text.replace("/dm", "").strip()
         if text:
-            for user_id in cur.execute("SELECT user_id FROM users"):
+            for user_id in user_ids:
                 try:
                     bot.send_message(user_id[0], text)
                 except:
@@ -212,7 +216,7 @@ def send_dm(message):
             bot.send_message(message.chat.id, "✅ Messaggio inviato a tutti gli utenti registrati.")
         else:
             bot.send_message(message.chat.id, "⚠️ Usa il comando così: /dm [messaggio] o rispondi a un messaggio.")
-
+            
 # 🔹 Comando /ban
 @bot.message_handler(commands=["ban"])
 def ban_user(message):
@@ -227,10 +231,10 @@ def ban_user(message):
         if result:
             user_id = result[0]
             bot.kick_chat_member(CHANNEL_ID, user_id)
+            conn.commit()  # 🔹 Assicura che il database sia aggiornato
             bot.send_message(message.chat.id, f"🚨 Utente @{username_or_id} bannato con successo!")
         else:
             bot.send_message(message.chat.id, f"❌ Utente @{username_or_id} non trovato.")
-
     except IndexError:
         bot.send_message(message.chat.id, "⚠️ Usa il comando così: /ban @username o /ban user_id")
         
