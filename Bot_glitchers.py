@@ -268,10 +268,18 @@ def webhook():
     if request.method == "GET":
         return "✅ Webhook attivo!", 200  # Per verificare che sia raggiungibile
 
-    data = request.get_data().decode("utf-8")
-if not data:
-    return "Bad Request", 400
-    
+    try:
+        data = request.get_data().decode("utf-8")
+        if not data:
+            return "Bad Request", 400
+        
+        update = telebot.types.Update.de_json(data)
+        bot.process_new_updates([update])
+        return "OK", 200
+    except Exception as e:
+        print(f"❌ Errore nel webhook: {e}")
+        return "Errore interno", 500
+
 update = telebot.types.Update.de_json(data)
     except Exception as e:
         print(f"❌ Errore nel webhook: {e}")
@@ -279,8 +287,8 @@ update = telebot.types.Update.de_json(data)
         
 
 if __name__ == "__main__":
-    from gunicorn.app.base import BaseApplication
-
+    app.run(host="0.0.0.0", port=8080)
+    
     class MyApplication(BaseApplication):
         def load(self):
             return app
