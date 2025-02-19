@@ -1,1 +1,1 @@
-worker: gunicorn -b 0.0.0.0:8080 Bot_glitchers:app
+web: gunicorn -b 0.0.0.0:8080 Bot_glitchers:app
