@@ -13,7 +13,6 @@ OWNER_ID = 5543012634  # Il tuo ID Telegram
 CHANNEL_ID = -1001716099490  # ID del canale
 CHANNEL_LINK = "https://t.me/+mcc19N6Idbs1OWJk"
 DATABASE_URL = "postgresql://postgres:khnjqckSOVYzhdGPebuvMJHWoEjqoYKf@nozomi.proxy.rlwy.net:17240/railway"
-DATABASE_URL = "postgresql://postgres:khnjqckSOVYzhdGPebuvMJHWoEjqoYKf@nozomi.proxy.rlwy.net:17240/railway"
 WEBHOOK_URL = "https://confident-strength.up.railway.app/webhook"
 
 def connect_db():
@@ -35,18 +34,16 @@ def keep_db_alive():
             conn.commit()
         except Exception:
             print("🔄 Tentativo di riconnessione a PostgreSQL...")
-            connect_db()
-        time.sleep(600)  # Controlla ogni 10 minuti
-
+            for _ in range(3):  # Prova massimo 3 volte
+                try:
+                    connect_db()
+                    break
+                except:
+                    time.sleep(5)
+        time.sleep(600)
+        
 threading.Thread(target=keep_db_alive, daemon=True).start()
 
-try:
-    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-    cur = conn.cursor()
-    print("✅ Connessione a PostgreSQL riuscita!")
-except Exception as e:
-    print(f"❌ Errore di connessione a PostgreSQL: {e}")
-    
 
 # 🔹 Creazione delle tabelle se non esistono
 cur.execute("""
@@ -167,6 +164,7 @@ def reset_user(message):
 
     except IndexError:
         bot.send_message(message.chat.id, "⚠️ Usa il comando così: /reset_utente @username o /reset_utente user_id")
+cur.execute("SELECT user_id FROM users WHERE username = %s OR CAST(user_id AS TEXT) = %s", (username_or_id, username_or_id))
 
 # 🔹 Comando /totale
 @bot.message_handler(commands=["totale"])
@@ -239,7 +237,10 @@ def ban_user(message):
 
 bot.remove_webhook()
 time.sleep(1)
-bot.set_webhook(url=WEBHOOK_URL)
+if bot.set_webhook(url=WEBHOOK_URL):
+    print(f"✅ Webhook impostato su {WEBHOOK_URL}")
+else:
+    print("❌ Errore nell'impostazione del webhook!")
 
 app = Flask(__name__)
 
