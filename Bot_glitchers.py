@@ -239,14 +239,22 @@ def ban_user(message):
         bot.send_message(message.chat.id, "⚠️ Usa il comando così: /ban @username o /ban user_id")
         
 
-bot.remove_webhook()
-time.sleep(1)
-if bot.set_webhook(url=WEBHOOK_URL):
-    print(f"✅ Webhook impostato su {WEBHOOK_URL}")
-else:
-    print("❌ Errore nell'impostazione del webhook!")
+import requests
 
-app = Flask(__name__)
+# Controlla se il webhook è già impostato prima di rimuoverlo e reinviarlo
+current_webhook = f"https://api.telegram.org/bot{TOKEN}/getWebhookInfo"
+response = requests.get(current_webhook).json()
+
+if response.get("result", {}).get("url") != WEBHOOK_URL:
+    bot.remove_webhook()
+    time.sleep(1)
+    if bot.set_webhook(url=WEBHOOK_URL):
+        print(f"✅ Webhook impostato su {WEBHOOK_URL}")
+    else:
+        print("❌ Errore nell'impostazione del webhook!")
+else:
+    print(f"ℹ️ Webhook già attivo su {WEBHOOK_URL}")
+    
 
 @bot.message_handler(commands=["test"])
 def test_command(message):
