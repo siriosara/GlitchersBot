@@ -260,15 +260,12 @@ else:
 def test_command(message):
     bot.send_message(message.chat.id, "✅ Il bot è attivo e funzionante!")
 
-# Controllo del webhook per debug
-from flask import Flask, request
-
-app = Flask(__name__)
+app = Flask(__name__)  # Definizione corretta di app
 
 @app.route("/webhook", methods=["GET", "POST"])
 def webhook():
     if request.method == "GET":
-        return "✅ Webhook attivo!", 200  # Per verificare che sia raggiungibile
+    return "✅ Webhook attivo!", 200  # Per verificare che sia raggiungibile
 
     update = telebot.types.Update.de_json(request.get_data().decode("utf-8"))
     bot.process_new_updates([update])
@@ -283,4 +280,3 @@ if __name__ == "__main__":
 
     print("🚀 Avvio del server Flask su Railway...")
     MyApplication().run()
-                
