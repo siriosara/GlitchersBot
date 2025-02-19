@@ -1,1 +1,1 @@
-worker: python Bot_glitchers.py
+worker: gunicorn -b 0.0.0.0:8080 Bot_glitchers:app
