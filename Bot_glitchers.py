@@ -265,7 +265,7 @@ app = Flask(__name__)  # Definizione corretta di app
 @app.route("/webhook", methods=["GET", "POST"])
 def webhook():
     if request.method == "GET":
-    return "✅ Webhook attivo!", 200  # Per verificare che sia raggiungibile
+        return "✅ Webhook attivo!", 200  # Per verificare che sia raggiungibile
 
     update = telebot.types.Update.de_json(request.get_data().decode("utf-8"))
     bot.process_new_updates([update])
