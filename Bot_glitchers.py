@@ -270,23 +270,14 @@ def webhook():
 
     try:
         data = request.get_data().decode("utf-8")
-        if not data:
-            return "Bad Request", 400
-        
         update = telebot.types.Update.de_json(data)
         bot.process_new_updates([update])
         return "OK", 200
     except Exception as e:
         print(f"❌ Errore nel webhook: {e}")
         return "Errore interno", 500
-
-update = telebot.types.Update.de_json(data)
-    except Exception as e:
-        print(f"❌ Errore nel webhook: {e}")
-        return "Errore interno", 500
         
-
-if __name__ == "__main__":
+    if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
     
     class MyApplication(BaseApplication):
