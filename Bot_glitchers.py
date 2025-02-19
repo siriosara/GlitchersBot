@@ -12,9 +12,33 @@ bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 OWNER_ID = 5543012634  # Il tuo ID Telegram
 CHANNEL_ID = -1001716099490  # ID del canale
 CHANNEL_LINK = "https://t.me/+mcc19N6Idbs1OWJk"
-
-# 🔹 Imposta direttamente l'URL del database
 DATABASE_URL = "postgresql://postgres:khnjqckSOVYzhdGPebuvMJHWoEjqoYKf@nozomi.proxy.rlwy.net:17240/railway"
+DATABASE_URL = "postgresql://postgres:khnjqckSOVYzhdGPebuvMJHWoEjqoYKf@nozomi.proxy.rlwy.net:17240/railway"
+WEBHOOK_URL = "https://confident-strength.up.railway.app/webhook"
+
+def connect_db():
+    global conn, cur
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        print("✅ Connessione a PostgreSQL riuscita!")
+    except Exception as e:
+        print(f"❌ Errore nella connessione a PostgreSQL: {e}")
+
+connect_db()
+
+# Mantiene viva la connessione
+def keep_db_alive():
+    while True:
+        try:
+            cur.execute("SELECT 1")
+            conn.commit()
+        except Exception:
+            print("🔄 Tentativo di riconnessione a PostgreSQL...")
+            connect_db()
+        time.sleep(600)  # Controlla ogni 10 minuti
+
+threading.Thread(target=keep_db_alive, daemon=True).start()
 
 try:
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
@@ -213,19 +237,33 @@ def ban_user(message):
         bot.send_message(message.chat.id, "⚠️ Usa il comando così: /ban @username o /ban user_id")
         
 
-# 🔹 Webhook
 bot.remove_webhook()
 time.sleep(1)
-bot.set_webhook(url=os.getenv("WEBHOOK_URL"))
+bot.set_webhook(url=WEBHOOK_URL)
 
 app = Flask(__name__)
 
-@app.route("/webhook", methods=["POST"])
+@bot.message_handler(commands=["test"])
+def test_command(message):
+    bot.send_message(message.chat.id, "✅ Il bot è attivo e funzionante!")
+
+# Controllo del webhook per debug
+@app.route("/webhook", methods=["GET", "POST"])
 def webhook():
+    if request.method == "GET":
+        return "✅ Webhook attivo!", 200  # Per verificare che sia raggiungibile
+
     update = telebot.types.Update.de_json(request.get_data().decode("utf-8"))
     bot.process_new_updates([update])
     return "OK", 200
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    from gunicorn.app.base import BaseApplication
+
+    class MyApplication(BaseApplication):
+        def load(self):
+            return app
+
+    print("🚀 Avvio del server Flask su Railway...")
+    MyApplication().run()
                 
