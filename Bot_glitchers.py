@@ -240,25 +240,38 @@ def ban_user(message):
             bot.send_message(message.chat.id, f"❌ Utente @{username_or_id} non trovato.")
     except IndexError:
         bot.send_message(message.chat.id, "⚠️ Usa il comando così: /ban @username o /ban user_id")
-        
-# 🔹 Connessione al Database PostgreSQL (se la usi)
-DB_URL = os.getenv("DATABASE_URL")  # Assicurati di avere questa variabile su Railway
-conn = psycopg2.connect(DB_URL)
-cur = conn.cursor()
 
 # 🔹 Comando di test per verificare se il bot risponde
 @bot.message_handler(commands=["test"])
 def test_command(message):
     bot.send_message(message.chat.id, "✅ Il bot è attivo e funzionante!")
 
-# 🔹 Inizializza Flask per gestire il webhook
+# 🔹 Configura il Webhook correttamente
+def setup_webhook():
+    print("🔄 Configurazione del webhook...")
+    
+    # Rimuove il webhook esistente
+    requests.get(f"https://api.telegram.org/bot{TOKEN}/deleteWebhook?drop_pending_updates=true")
+    time.sleep(1)
+
+    # Controlla il webhook attuale
+    response = requests.get(f"https://api.telegram.org/bot{TOKEN}/getWebhookInfo").json()
+    current_url = response.get("result", {}).get("url", "")
+
+    # Se il webhook non è attivo o ha un URL sbagliato, lo reimposta
+    if current_url != WEBHOOK_URL:
+        if bot.set_webhook(url=WEBHOOK_URL):
+            print(f"✅ Webhook impostato su {WEBHOOK_URL}")
+        else:
+            print("❌ Errore nell'impostazione del webhook!")
+    else:
+        print(f"ℹ️ Webhook già attivo su {WEBHOOK_URL}")
+
+# 🔹 Inizializza Flask per il Webhook
 app = Flask(__name__)
 
-@app.route("/webhook", methods=["GET", "POST"])
+@app.route("/webhook", methods=["POST"])
 def webhook():
-    if request.method == "GET":
-        return "✅ Webhook attivo!", 200  # Verifica se è raggiungibile
-
     try:
         update = telebot.types.Update.de_json(request.get_data().decode("utf-8"))
         bot.process_new_updates([update])
@@ -267,25 +280,17 @@ def webhook():
         print(f"❌ Errore nel webhook: {e}")
         return "Errore interno", 500
 
-# 🔹 Rimuove e reimposta forzatamente il webhook
-requests.get(f"https://api.telegram.org/bot{TOKEN}/deleteWebhook?drop_pending_updates=true")
-time.sleep(1)  # Aspetta un secondo per sicurezza
+# 🔹 Avvia il Webhook all'avvio del bot
+setup_webhook()
 
-# 🔹 Controlla il webhook attuale
-current_webhook = f"https://api.telegram.org/bot{TOKEN}/getWebhookInfo"
-response = requests.get(current_webhook).json()
-
-# 🔹 Se il webhook non è attivo o è diverso, lo reimposta
-if response.get("result", {}).get("url") != WEBHOOK_URL:
-    if bot.set_webhook(url=WEBHOOK_URL):
-        print(f"✅ Webhook impostato su {WEBHOOK_URL}")
-    else:
-        print("❌ Errore nell'impostazione del webhook!")
-else:
-    print(f"ℹ️ Webhook già attivo su {WEBHOOK_URL}")
-
-# 🔹 Avvia il server Flask su Railway
+# 🔹 Avvia il server Flask su Railway con Gunicorn
 if __name__ == "__main__":
     print("🚀 Avvio del server Flask su Railway...")
-    app.run(host="0.0.0.0", port=8080)
+    from gunicorn.app.base import BaseApplication
+
+    class MyApplication(BaseApplication):
+        def load(self):
+            return app
+
+    MyApplication().run()
     
