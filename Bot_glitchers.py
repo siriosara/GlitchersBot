@@ -18,6 +18,14 @@ CHANNEL_ID = int(os.getenv("CHANNEL_ID", -1001716099490))  # Default al tuo cana
 CHANNEL_LINK = os.getenv("CHANNEL_LINK", "https://t.me/+mcc19N6Idbs1OWJk")
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
+TOKEN = os.getenv("TOKEN", "").strip()  # Rimuove eventuali spazi
+if not TOKEN:
+    raise ValueError("❌ TOKEN non trovato! Verifica le variabili di ambiente.")
+
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+if not DATABASE_URL:
+    raise ValueError("❌ DATABASE_URL non trovato! Verifica le variabili di ambiente.")
+
 # 🔹 Connessione al database con retry automatico
 def connect_db():
     global conn, cur
