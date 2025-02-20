@@ -18,33 +18,32 @@ CHANNEL_LINK = "https://t.me/+mcc19N6Idbs1OWJk"
 DATABASE_URL = "postgresql://postgres:khnjqckSOVYzhdGPebuvMJHWoEjqoYKf@nozomi.proxy.rlwy.net:17240/railway"
 WEBHOOK_URL = "https://confident-strength.up.railway.app/webhook"
 
+# 🔹 Connessione al database con retry automatico
 def connect_db():
     global conn, cur
-    try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-        cur = conn.cursor()
-        print("✅ Connessione a PostgreSQL riuscita!")
-    except Exception as e:
-        print(f"❌ Errore nella connessione a PostgreSQL: {e}")
+    for _ in range(5):
+        try:
+            conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+            cur = conn.cursor()
+            print("✅ Connessione a PostgreSQL riuscita!")
+            return
+        except Exception as e:
+            print(f"❌ Errore nella connessione a PostgreSQL: {e}")
+            time.sleep(5)
 
 connect_db()
 
-# Mantiene viva la connessione
+# 🔹 Mantiene viva la connessione
 def keep_db_alive():
     while True:
         try:
             cur.execute("SELECT 1")
             conn.commit()
         except Exception:
-            print("🔄 Tentativo di riconnessione a PostgreSQL...")
-            for _ in range(3):  # Prova massimo 3 volte
-                try:
-                    connect_db()
-                    break
-                except:
-                    time.sleep(5)
+            print("🔄 Tentativo di riconnessione...")
+            connect_db()
         time.sleep(600)
-        
+
 threading.Thread(target=keep_db_alive, daemon=True).start()
 
 
@@ -241,37 +240,30 @@ def ban_user(message):
     except IndexError:
         bot.send_message(message.chat.id, "⚠️ Usa il comando così: /ban @username o /ban user_id")
 
-# 🔹 Comando di test per verificare se il bot risponde
-@bot.message_handler(commands=["test"])
-def test_command(message):
-    bot.send_message(message.chat.id, "✅ Il bot è attivo e funzionante!")
-
-# 🔹 Configura il Webhook correttamente
+# 🔹 Configura il Webhook solo se necessario
 def setup_webhook():
     print("🔄 Controllo dello stato del webhook...")
-    
-    # Controlla lo stato attuale del webhook
     response = requests.get(f"https://api.telegram.org/bot{TOKEN}/getWebhookInfo").json()
     current_url = response.get("result", {}).get("url", "")
 
-    # Se il webhook non è attivo o ha un URL sbagliato, lo reimposta
-    if current_url != WEBHOOK_URL:
-        print("🔄 Webhook non corrispondente, lo aggiorno...")
-        bot.remove_webhook()
-        time.sleep(1)
-        if bot.set_webhook(url=WEBHOOK_URL):
-            print(f"✅ Webhook aggiornato su {WEBHOOK_URL}")
-        else:
-            print("❌ Errore nell'impostazione del webhook!")
-    else:
+    if current_url == WEBHOOK_URL:
         print(f"ℹ️ Webhook già attivo su {WEBHOOK_URL}")
+        return  
+
+    print("🔄 Webhook non corrispondente, lo aggiorno...")
+    bot.remove_webhook()
+    time.sleep(1)
+    if bot.set_webhook(url=WEBHOOK_URL):
+        print(f"✅ Webhook aggiornato su {WEBHOOK_URL}")
+    else:
+        print("❌ Errore nell'impostazione del webhook!")
 
 # 🔹 Inizializza Flask per il Webhook
 app = Flask(__name__)
 
 @app.route("/")
 def index():
-    return "Bot attivo!", 200  # 🔹 Endpoint per verificare che il bot sia attivo
+    return "Bot attivo!", 200  
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
@@ -283,17 +275,4 @@ def webhook():
         print(f"❌ Errore nel webhook: {e}")
         return "Errore interno", 500
 
-# 🔹 Avvia il Webhook all'avvio del bot
 setup_webhook()
-
-# 🔹 Avvia il server Flask su Railway con Gunicorn
-if __name__ == "__main__":
-    print("🚀 Avvio del server Flask su Railway...")
-    from gunicorn.app.base import BaseApplication
-
-    class MyApplication(BaseApplication):
-        def load(self):
-            return app  # 🔹 Qui c'era un errore di indentazione
-
-    MyApplication().run()
-    
