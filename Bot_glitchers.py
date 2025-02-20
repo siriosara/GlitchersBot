@@ -238,35 +238,38 @@ def ban_user(message):
     except IndexError:
         bot.send_message(message.chat.id, "⚠️ Usa il comando così: /ban @username o /ban user_id")
         
+# 🔹 Inizializza il bot
+bot = telebot.TeleBot(TOKEN)
 
-import requests
+# 🔹 Rimuove forzatamente il webhook prima di reimpostarlo
+requests.get(f"https://api.telegram.org/bot{TOKEN}/deleteWebhook?drop_pending_updates=true")
+time.sleep(1)  # Aspetta un secondo per sicurezza
 
-# Controlla se il webhook è già impostato prima di rimuoverlo e reinviarlo
+# 🔹 Controlla il webhook attuale
 current_webhook = f"https://api.telegram.org/bot{TOKEN}/getWebhookInfo"
 response = requests.get(current_webhook).json()
 
+# 🔹 Se il webhook non è attivo o è diverso, lo reimposta
 if response.get("result", {}).get("url") != WEBHOOK_URL:
-    bot.remove_webhook()
-    time.sleep(1)
     if bot.set_webhook(url=WEBHOOK_URL):
         print(f"✅ Webhook impostato su {WEBHOOK_URL}")
     else:
         print("❌ Errore nell'impostazione del webhook!")
 else:
     print(f"ℹ️ Webhook già attivo su {WEBHOOK_URL}")
-    
 
+# 🔹 Comando di test per verificare se il bot risponde
 @bot.message_handler(commands=["test"])
 def test_command(message):
     bot.send_message(message.chat.id, "✅ Il bot è attivo e funzionante!")
 
-from flask import Flask  
-app = Flask(__name__)  # Questa definizione è essenziale
+# 🔹 Inizializza Flask per gestire il webhook
+app = Flask(__name__)
 
 @app.route("/webhook", methods=["GET", "POST"])
 def webhook():
     if request.method == "GET":
-        return "✅ Webhook attivo!", 200  # Per verificare che sia raggiungibile
+        return "✅ Webhook attivo!", 200  # Verifica se è raggiungibile
 
     try:
         data = request.get_data().decode("utf-8")
@@ -276,13 +279,9 @@ def webhook():
     except Exception as e:
         print(f"❌ Errore nel webhook: {e}")
         return "Errore interno", 500
-        
-from gunicorn.app.base import BaseApplication
 
-class MyApplication(BaseApplication):
-    def load(self):
-        return app
-
+# 🔹 Avvia il server Flask su Railway
 if __name__ == "__main__":
     print("🚀 Avvio del server Flask su Railway...")
-    MyApplication().run()
+    app.run(host="0.0.0.0", port=8080)
+        
