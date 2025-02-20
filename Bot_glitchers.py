@@ -9,6 +9,17 @@ import psycopg2
 from flask import Flask, request
 from datetime import datetime
 
+import os
+
+def check_env_variables():
+    required_vars = ["TOKEN", "DATABASE_URL", "WEBHOOK_URL", "OWNER_ID", "CHANNEL_ID"]
+    for var in required_vars:
+        value = os.getenv(var, "").strip()
+        print(f"🔍 {var}: {'✅ OK' if value else '❌ NON TROVATA'}")
+
+check_env_variables()  # Debug delle variabili d'ambiente
+
+
 # 🔹 Token del bot e ID del canale
 TOKEN = os.getenv("TOKEN", "").strip()
 DATABASE_URL = os.getenv("DATABASE_URL")
