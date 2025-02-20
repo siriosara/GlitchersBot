@@ -248,20 +248,19 @@ def test_command(message):
 
 # 🔹 Configura il Webhook correttamente
 def setup_webhook():
-    print("🔄 Configurazione del webhook...")
+    print("🔄 Controllo dello stato del webhook...")
     
-    # Rimuove il webhook esistente
-    requests.get(f"https://api.telegram.org/bot{TOKEN}/deleteWebhook?drop_pending_updates=true")
-    time.sleep(1)
-
-    # Controlla il webhook attuale
+    # Controlla lo stato attuale del webhook
     response = requests.get(f"https://api.telegram.org/bot{TOKEN}/getWebhookInfo").json()
     current_url = response.get("result", {}).get("url", "")
 
     # Se il webhook non è attivo o ha un URL sbagliato, lo reimposta
     if current_url != WEBHOOK_URL:
+        print("🔄 Webhook non corrispondente, lo aggiorno...")
+        bot.remove_webhook()
+        time.sleep(1)
         if bot.set_webhook(url=WEBHOOK_URL):
-            print(f"✅ Webhook impostato su {WEBHOOK_URL}")
+            print(f"✅ Webhook aggiornato su {WEBHOOK_URL}")
         else:
             print("❌ Errore nell'impostazione del webhook!")
     else:
@@ -269,6 +268,10 @@ def setup_webhook():
 
 # 🔹 Inizializza Flask per il Webhook
 app = Flask(__name__)
+
+@app.route("/")
+def index():
+    return "Bot attivo!", 200  # 🔹 Endpoint per verificare che il bot sia attivo
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
@@ -290,7 +293,7 @@ if __name__ == "__main__":
 
     class MyApplication(BaseApplication):
         def load(self):
-            return app
+            return app  # 🔹 Qui c'era un errore di indentazione
 
     MyApplication().run()
     
