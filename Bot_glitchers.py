@@ -10,7 +10,7 @@ from flask import Flask, request
 from datetime import datetime
 
 # 🔹 Token del bot e ID del canale
-TOKEN = os.getenv("TOKEN")
+TOKEN = os.getenv("TOKEN", "").strip()
 DATABASE_URL = os.getenv("DATABASE_URL")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 OWNER_ID = int(os.getenv("OWNER_ID", 5543012634))  # Default al tuo ID Telegram
@@ -25,6 +25,9 @@ if not TOKEN:
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 if not DATABASE_URL:
     raise ValueError("❌ DATABASE_URL non trovato! Verifica le variabili di ambiente.")
+
+if not WEBHOOK_URL:
+    raise ValueError("❌ ERRORE: La variabile WEBHOOK_URL non è stata trovata!")
 
 # 🔹 Connessione al database con retry automatico
 def connect_db():
