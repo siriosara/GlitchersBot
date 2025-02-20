@@ -241,10 +241,33 @@ def ban_user(message):
     except IndexError:
         bot.send_message(message.chat.id, "⚠️ Usa il comando così: /ban @username o /ban user_id")
         
-# 🔹 Inizializza il bot
-bot = telebot.TeleBot(TOKEN)
+# 🔹 Connessione al Database PostgreSQL (se la usi)
+DB_URL = os.getenv("DATABASE_URL")  # Assicurati di avere questa variabile su Railway
+conn = psycopg2.connect(DB_URL)
+cur = conn.cursor()
 
-# 🔹 Rimuove forzatamente il webhook prima di reimpostarlo
+# 🔹 Comando di test per verificare se il bot risponde
+@bot.message_handler(commands=["test"])
+def test_command(message):
+    bot.send_message(message.chat.id, "✅ Il bot è attivo e funzionante!")
+
+# 🔹 Inizializza Flask per gestire il webhook
+app = Flask(__name__)
+
+@app.route("/webhook", methods=["GET", "POST"])
+def webhook():
+    if request.method == "GET":
+        return "✅ Webhook attivo!", 200  # Verifica se è raggiungibile
+
+    try:
+        update = telebot.types.Update.de_json(request.get_data().decode("utf-8"))
+        bot.process_new_updates([update])
+        return "OK", 200
+    except Exception as e:
+        print(f"❌ Errore nel webhook: {e}")
+        return "Errore interno", 500
+
+# 🔹 Rimuove e reimposta forzatamente il webhook
 requests.get(f"https://api.telegram.org/bot{TOKEN}/deleteWebhook?drop_pending_updates=true")
 time.sleep(1)  # Aspetta un secondo per sicurezza
 
@@ -261,30 +284,8 @@ if response.get("result", {}).get("url") != WEBHOOK_URL:
 else:
     print(f"ℹ️ Webhook già attivo su {WEBHOOK_URL}")
 
-# 🔹 Comando di test per verificare se il bot risponde
-@bot.message_handler(commands=["test"])
-def test_command(message):
-    bot.send_message(message.chat.id, "✅ Il bot è attivo e funzionante!")
-
-# 🔹 Inizializza Flask per gestire il webhook
-app = Flask(__name__)
-
-@app.route("/webhook", methods=["GET", "POST"])
-def webhook():
-    if request.method == "GET":
-        return "✅ Webhook attivo!", 200  # Verifica se è raggiungibile
-
-    try:
-        data = request.get_data().decode("utf-8")
-        update = telebot.types.Update.de_json(data)
-        bot.process_new_updates([update])
-        return "OK", 200
-    except Exception as e:
-        print(f"❌ Errore nel webhook: {e}")
-        return "Errore interno", 500
-
 # 🔹 Avvia il server Flask su Railway
 if __name__ == "__main__":
     print("🚀 Avvio del server Flask su Railway...")
     app.run(host="0.0.0.0", port=8080)
-        
+    
