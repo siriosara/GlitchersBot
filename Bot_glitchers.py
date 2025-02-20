@@ -1,8 +1,11 @@
 import os
-import telebot
-import psycopg2
 import time
 import threading
+import requests  # ✅ AGGIUNTO: Necessario per gestire il webhook di Telegram
+
+import telebot
+import psycopg2
+
 from flask import Flask, request
 from datetime import datetime
 
