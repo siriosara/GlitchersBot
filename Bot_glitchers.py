@@ -10,13 +10,13 @@ from flask import Flask, request
 from datetime import datetime
 
 # 🔹 Token del bot e ID del canale
-TOKEN = "7665636304:AAEsWwMX7QG4tVoC3IufpSjL-ZMjfspIphY"
+TOKEN = os.getenv("TOKEN")
+DATABASE_URL = os.getenv("DATABASE_URL")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+OWNER_ID = int(os.getenv("OWNER_ID", 5543012634))  # Default al tuo ID Telegram
+CHANNEL_ID = int(os.getenv("CHANNEL_ID", -1001716099490))  # Default al tuo canale
+CHANNEL_LINK = os.getenv("CHANNEL_LINK", "https://t.me/+mcc19N6Idbs1OWJk")
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
-OWNER_ID = 5543012634  # Il tuo ID Telegram
-CHANNEL_ID = -1001716099490  # ID del canale
-CHANNEL_LINK = "https://t.me/+mcc19N6Idbs1OWJk"
-DATABASE_URL = "postgresql://postgres:khnjqckSOVYzhdGPebuvMJHWoEjqoYKf@nozomi.proxy.rlwy.net:17240/railway"
-WEBHOOK_URL = "https://confident-strength.up.railway.app/webhook"
 
 # 🔹 Connessione al database con retry automatico
 def connect_db():
