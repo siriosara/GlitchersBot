@@ -26,7 +26,7 @@ if not WEBHOOK_URL:
 
 # 🔹 Connessione al database con retry automatico
 def connect_db():
-    global conn, cur  # <=== Sposta questa dichiarazione all'inizio della funzione
+    global conn, cur
     for _ in range(5):
         try:
             conn = psycopg2.connect(DATABASE_URL, sslmode='require')
@@ -35,10 +35,10 @@ def connect_db():
             return
         except Exception as e:
             print(f"❌ Errore nella connessione a PostgreSQL: {e}")
-            time.sleep(5)  # <=== Ora 'time' è importato e non darà errore
-    
-    raise RuntimeError("❌ Impossibile connettersi al database dopo 5 tentativi. Arresto del bot.")
+            time.sleep(5)  
 
+    raise RuntimeError("❌ Impossibile connettersi al database dopo 5 tentativi. Arresto del bot.")
+    
 connect_db()
 
 # 🔹 Mantiene viva la connessione
@@ -52,10 +52,7 @@ def keep_db_alive():
             if conn:
                 conn.close()
             connect_db()
-            global cur  # 🔹 Assicura che `cur` venga aggiornato correttamente
-            cur = conn.cursor()
         time.sleep(600)
-
 threading.Thread(target=keep_db_alive, daemon=True).start()
 
 
@@ -260,32 +257,25 @@ def setup_webhook():
     print("🔄 Controllo dello stato del webhook...")
     try:
         response = requests.get(f"https://api.telegram.org/bot{TOKEN}/getWebhookInfo").json()
-        current_url = response.get("result", {}).get("url", None)  # Usa None invece di ""
-        
-        if current_url is None:
-            print("❌ Errore: impossibile ottenere il webhook attuale da Telegram.")
-            return  
+        current_url = response.get("result", {}).get("url", "")
 
         if current_url == WEBHOOK_URL:
             print(f"ℹ️ Webhook già attivo su {WEBHOOK_URL}")
             return  
 
         print("🔄 Webhook non corrispondente, lo aggiorno...")
-        bot.remove_webhook()  
+        bot.remove_webhook()  # Rimuove il vecchio webhook
         time.sleep(1)
-        success = bot.set_webhook(url=WEBHOOK_URL)
-
+        
+        success = bot.set_webhook(url=WEBHOOK_URL)  # Imposta il nuovo webhook
+        
         if success:
             print(f"✅ Webhook aggiornato su {WEBHOOK_URL}")
         else:
             print("❌ Errore nell'impostazione del webhook!")
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Errore di connessione con Telegram: {e}")
     except Exception as e:
-        print(f"❌ Errore generico nella configurazione del webhook: {e}")
+        print(f"❌ Errore durante la configurazione del webhook: {e}")
         
-setup_webhook()
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
     
