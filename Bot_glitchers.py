@@ -43,12 +43,14 @@ connect_db()
 
 # 🔹 Mantiene viva la connessione
 def keep_db_alive():
+    global conn, cur
     while True:
         try:
-            cur.execute("SELECT 1")
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
             conn.commit()
-        except Exception:
-            print("🔄 Connessione persa, riconnessione in corso...")
+        except Exception as e:
+            print(f"🔄 Connessione persa: {e}, riconnessione in corso...")
             if conn:
                 conn.close()
             connect_db()
@@ -146,11 +148,8 @@ def check_status(message):
 # 🔹 Comando /classifica
 @bot.message_handler(commands=["classifica"])
 def leaderboard(message):
-    if message.from_user.id != OWNER_ID:
-        return
-
-cur.execute("SELECT username, xp FROM users ORDER BY xp DESC LIMIT 10")
-top_users = cur.fetchall()
+    cur.execute("SELECT username, xp FROM users ORDER BY xp DESC LIMIT 10")
+    top_users = cur.fetchall()
 
 if not top_users:
     response = "🏆 <b>Top 10 Utenti XP</b>:\n Nessun utente in classifica."
@@ -275,7 +274,15 @@ def setup_webhook():
             print("❌ Errore nell'impostazione del webhook!")
     except Exception as e:
         print(f"❌ Errore durante la configurazione del webhook: {e}")
-        
+
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    if request.method == "POST":
+        update = telebot.types.Update.de_json(request.get_data().decode("utf-8"))
+        bot.process_new_updates([update])
+        return "OK", 200
+    return "Metodo non consentito", 405
+    
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
     
