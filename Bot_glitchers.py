@@ -1,5 +1,6 @@
 import requests  
 import telebot
+import time
 import threading
 import psycopg2
 from flask import Flask, request
@@ -149,11 +150,15 @@ def leaderboard(message):
     if message.from_user.id != OWNER_ID:
         return
 
-    cur.execute("SELECT username, xp FROM users ORDER BY xp DESC LIMIT 10")
-    top_users = cur.fetchall()
+cur.execute("SELECT username, xp FROM users ORDER BY xp DESC LIMIT 10")
+top_users = cur.fetchall()
 
-    response = "🏆 <b>Top 10 Utenti XP</b>:\n" + "\n".join([f"{i+1}. @{user[0]}: {user[1]} XP" for i, user in enumerate(top_users)]) if top_users else "Nessun utente in classifica."
-    bot.send_message(message.chat.id, response, parse_mode="HTML")
+if not top_users:
+    response = "🏆 <b>Top 10 Utenti XP</b>:\n Nessun utente in classifica."
+else:
+    response = "🏆 <b>Top 10 Utenti XP</b>:\n" + "\n".join([f"{i+1}. @{user[0]}: {user[1]} XP" for i, user in enumerate(top_users)])
+
+bot.send_message(message.chat.id, response, parse_mode="HTML")
 
 @bot.message_handler(commands=["reset_utente"])
 def reset_user(message):
