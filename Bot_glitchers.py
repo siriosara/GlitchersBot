@@ -50,6 +50,7 @@ def keep_db_alive():
             if conn:
                 conn.close()  # Chiude la connessione precedente
             connect_db()
+            cur = conn.cursor()  # 🔹 Ricrea il cursore dopo la riconnessione
         time.sleep(600)
 
 threading.Thread(target=keep_db_alive, daemon=True).start()
