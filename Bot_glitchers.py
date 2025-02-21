@@ -49,9 +49,10 @@ def keep_db_alive():
         except Exception:
             print("🔄 Connessione persa, riconnessione in corso...")
             if conn:
-                conn.close()  # Chiude la connessione precedente
+                conn.close()
             connect_db()
-            cur = conn.cursor()  # 🔹 Ricrea il cursore dopo la riconnessione
+            global cur  # 🔹 Assicura che `cur` venga aggiornato correttamente
+            cur = conn.cursor()
         time.sleep(600)
 
 threading.Thread(target=keep_db_alive, daemon=True).start()
