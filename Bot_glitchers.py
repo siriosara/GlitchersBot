@@ -289,6 +289,10 @@ def setup_webhook():
 # 🔹 Inizializza Flask per il Webhook
 app = Flask(__name__)
 
+@app.route("/test", methods=["GET"])
+def test():
+    return "Il server Flask è attivo!", 200
+    
 @app.route("/")
 def index():
     return "Bot attivo!", 200  
