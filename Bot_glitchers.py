@@ -1,48 +1,21 @@
-import os
-import time
-import threading
-import requests  # ✅ AGGIUNTO: Necessario per gestire il webhook di Telegram
-
+import requests  
 import telebot
 import psycopg2
-
 from flask import Flask, request
 from datetime import datetime
 
-def check_env_variables():
-    required_vars = ["TOKEN", "DATABASE_URL", "WEBHOOK_URL", "OWNER_ID", "CHANNEL_ID"]
-    for var in required_vars:
-        value = os.getenv(var, "").strip()
-        print(f"🔍 {var}: {'✅ OK' if value else '❌ NON TROVATA'}")
-
-check_env_variables()  # Debug delle variabili d'ambiente
-
-# Controllo dettagliato delle variabili
-def check_env_variables():
-    required_vars = ["TOKEN", "DATABASE_URL", "WEBHOOK_URL", "OWNER_ID", "CHANNEL_ID"]
-    for var in required_vars:
-        value = os.getenv(var, "NON TROVATA").strip()
-        print(f"🔍 {var}: {repr(value)}")  # Stampa il valore esatto
-
-check_env_variables()
-
 # 🔹 Token del bot e ID del canale
-TOKEN = os.getenv("TOKEN", "").strip()
-DATABASE_URL = os.getenv("DATABASE_URL")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-OWNER_ID = int(os.getenv("OWNER_ID", 5543012634))  # Default al tuo ID Telegram
-CHANNEL_ID = int(os.getenv("CHANNEL_ID", -1001716099490))  # Default al tuo canale
-CHANNEL_LINK = os.getenv("CHANNEL_LINK", "https://t.me/+mcc19N6Idbs1OWJk")
+TOKEN="7665636304:AAEsWwMX7QG4tVoC3IufpSjL-ZMjfspIphY"
+DATABASE_URL="postgresql://postgres:khnjqckSOVYzhdGPebuvMJHWoEjqoYKf@nozomi.proxy.rlwy.net:17240/railway"
+WEBHOOK_URL="https://confident-strength.up.railway.app/webhook"
+OWNER_ID="5543012634"
+CHANNEL_ID="-1001716099490"
+CHANNEL_LINK ="https://t.me/+mcc19N6Idbs1OWJk"
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
-TOKEN = os.getenv("TOKEN", "").strip()  # Rimuove eventuali spazi
 if not TOKEN:
-    raise ValueError("❌ TOKEN non trovato! Verifica le variabili di ambiente.")
-
-DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
-if not DATABASE_URL:
-    raise ValueError("❌ DATABASE_URL non trovato! Verifica le variabili di ambiente.")
-
+    raise ValueError("❌ TOKEN non trovato! Controlla la configurazione.")
+    
 if not WEBHOOK_URL:
     raise ValueError("❌ ERRORE: La variabile WEBHOOK_URL non è stata trovata!")
 
@@ -268,45 +241,28 @@ def ban_user(message):
     except IndexError:
         bot.send_message(message.chat.id, "⚠️ Usa il comando così: /ban @username o /ban user_id")
 
-# 🔹 Configura il Webhook solo se necessario
 def setup_webhook():
     print("🔄 Controllo dello stato del webhook...")
-    response = requests.get(f"https://api.telegram.org/bot{TOKEN}/getWebhookInfo").json()
-    current_url = response.get("result", {}).get("url", "")
-
-    if current_url == WEBHOOK_URL:
-        print(f"ℹ️ Webhook già attivo su {WEBHOOK_URL}")
-        return  
-
-    print("🔄 Webhook non corrispondente, lo aggiorno...")
-    bot.remove_webhook()
-    time.sleep(1)
-    if bot.set_webhook(url=WEBHOOK_URL):
-        print(f"✅ Webhook aggiornato su {WEBHOOK_URL}")
-    else:
-        print("❌ Errore nell'impostazione del webhook!")
-
-# 🔹 Inizializza Flask per il Webhook
-app = Flask(__name__)
-
-@app.route("/test", methods=["GET"])
-def test():
-    return "Il server Flask è attivo!", 200
-    
-@app.route("/")
-def index():
-    return "Bot attivo!", 200  
-
-@app.route("/webhook", methods=["POST"])
-def webhook():
     try:
-        update = telebot.types.Update.de_json(request.get_data().decode("utf-8"))
-        bot.process_new_updates([update])
-        return "OK", 200
-    except Exception as e:
-        print(f"❌ Errore nel webhook: {e}")
-        return "Errore interno", 500
+        response = requests.get(f"https://api.telegram.org/bot{TOKEN}/getWebhookInfo").json()
+        current_url = response.get("result", {}).get("url", "")
 
+        if current_url == WEBHOOK_URL:
+            print(f"ℹ️ Webhook già attivo su {WEBHOOK_URL}")
+            return  
+
+        print("🔄 Webhook non corrispondente, lo aggiorno...")
+        bot.delete_webhook()
+        time.sleep(1)
+        success = bot.set_webhook(url=WEBHOOK_URL)
+        
+        if success:
+            print(f"✅ Webhook aggiornato su {WEBHOOK_URL}")
+        else:
+            print("❌ Errore nell'impostazione del webhook!")
+    except Exception as e:
+        print(f"❌ Errore durante la configurazione del webhook: {e}")
+        
 setup_webhook()
 
 if __name__ == "__main__":
