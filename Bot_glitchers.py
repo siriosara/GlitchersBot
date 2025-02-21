@@ -1,8 +1,11 @@
 import requests  
 import telebot
+import threading
 import psycopg2
 from flask import Flask, request
 from datetime import datetime
+
+app = Flask(__name__)
 
 # 🔹 Token del bot e ID del canale
 TOKEN="7665636304:AAEsWwMX7QG4tVoC3IufpSjL-ZMjfspIphY"
@@ -252,10 +255,10 @@ def setup_webhook():
             return  
 
         print("🔄 Webhook non corrispondente, lo aggiorno...")
-        bot.delete_webhook()
+        bot.remove_webhook()  # Usa remove_webhook() al posto di delete_webhook()
         time.sleep(1)
         success = bot.set_webhook(url=WEBHOOK_URL)
-        
+
         if success:
             print(f"✅ Webhook aggiornato su {WEBHOOK_URL}")
         else:
