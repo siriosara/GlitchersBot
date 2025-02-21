@@ -25,15 +25,17 @@ if not WEBHOOK_URL:
 # 🔹 Connessione al database con retry automatico
 def connect_db():
     global conn, cur
-    for _ in range(5):
+    for attempt in range(5):
         try:
             conn = psycopg2.connect(DATABASE_URL, sslmode='require')
             cur = conn.cursor()
             print("✅ Connessione a PostgreSQL riuscita!")
             return
         except Exception as e:
-            print(f"❌ Errore nella connessione a PostgreSQL: {e}")
+            print(f"❌ Errore nella connessione a PostgreSQL (tentativo {attempt + 1}/5): {e}")
             time.sleep(5)
+    
+    raise RuntimeError("❌ Impossibile connettersi al database dopo 5 tentativi. Arresto del bot.")
 
 connect_db()
 
@@ -44,7 +46,9 @@ def keep_db_alive():
             cur.execute("SELECT 1")
             conn.commit()
         except Exception:
-            print("🔄 Tentativo di riconnessione...")
+            print("🔄 Connessione persa, riconnessione in corso...")
+            if conn:
+                conn.close()  # Chiude la connessione precedente
             connect_db()
         time.sleep(600)
 
@@ -248,14 +252,18 @@ def setup_webhook():
     print("🔄 Controllo dello stato del webhook...")
     try:
         response = requests.get(f"https://api.telegram.org/bot{TOKEN}/getWebhookInfo").json()
-        current_url = response.get("result", {}).get("url", "")
+        current_url = response.get("result", {}).get("url", None)  # Usa None invece di ""
+        
+        if current_url is None:
+            print("❌ Errore: impossibile ottenere il webhook attuale da Telegram.")
+            return  
 
         if current_url == WEBHOOK_URL:
             print(f"ℹ️ Webhook già attivo su {WEBHOOK_URL}")
             return  
 
         print("🔄 Webhook non corrispondente, lo aggiorno...")
-        bot.remove_webhook()  # Usa remove_webhook() al posto di delete_webhook()
+        bot.remove_webhook()  
         time.sleep(1)
         success = bot.set_webhook(url=WEBHOOK_URL)
 
@@ -263,8 +271,10 @@ def setup_webhook():
             print(f"✅ Webhook aggiornato su {WEBHOOK_URL}")
         else:
             print("❌ Errore nell'impostazione del webhook!")
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Errore di connessione con Telegram: {e}")
     except Exception as e:
-        print(f"❌ Errore durante la configurazione del webhook: {e}")
+        print(f"❌ Errore generico nella configurazione del webhook: {e}")
         
 setup_webhook()
 
