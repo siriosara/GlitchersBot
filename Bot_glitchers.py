@@ -1,7 +1,8 @@
-import requests  
-import telebot
-import time
+import os
+import time  # <=== AGGIUNTO IMPORT TIME
 import threading
+import requests
+import telebot
 import psycopg2
 from flask import Flask, request
 from datetime import datetime
@@ -25,16 +26,16 @@ if not WEBHOOK_URL:
 
 # 🔹 Connessione al database con retry automatico
 def connect_db():
-    global conn, cur
-    for attempt in range(5):
+    global conn, cur  # <=== Sposta questa dichiarazione all'inizio della funzione
+    for _ in range(5):
         try:
             conn = psycopg2.connect(DATABASE_URL, sslmode='require')
             cur = conn.cursor()
             print("✅ Connessione a PostgreSQL riuscita!")
             return
         except Exception as e:
-            print(f"❌ Errore nella connessione a PostgreSQL (tentativo {attempt + 1}/5): {e}")
-            time.sleep(5)
+            print(f"❌ Errore nella connessione a PostgreSQL: {e}")
+            time.sleep(5)  # <=== Ora 'time' è importato e non darà errore
     
     raise RuntimeError("❌ Impossibile connettersi al database dopo 5 tentativi. Arresto del bot.")
 
