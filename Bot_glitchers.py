@@ -1,5 +1,5 @@
 import os
-import time  # <=== AGGIUNTO IMPORT TIME
+import time
 import threading
 import requests
 import telebot
