@@ -10,21 +10,21 @@ from datetime import datetime
 app = Flask(__name__)
 
 # 🔹 Token del bot e ID del canale
-TOKEN="7665636304:AAEsWwMX7QG4tVoC3IufpSjL-ZMjfspIphY"
-DATABASE_URL="postgresql://postgres:khnjqckSOVYzhdGPebuvMJHWoEjqoYKf@nozomi.proxy.rlwy.net:17240/railway"
-WEBHOOK_URL="https://confident-strength.up.railway.app/webhook"
-OWNER_ID="5543012634"
-CHANNEL_ID="-1001716099490"
-CHANNEL_LINK ="https://t.me/+mcc19N6Idbs1OWJk"
+TOKEN = os.getenv("BOT_TOKEN")
+DATABASE_URL = os.getenv("DATABASE_URL")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+OWNER_ID = int(os.getenv("OWNER_ID"))
+CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
+CHANNEL_LINK = os.getenv("CHANNEL_LINK")
+
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
 if not TOKEN:
     raise ValueError("❌ TOKEN non trovato! Controlla la configurazione.")
-    
-if not WEBHOOK_URL:
-    raise ValueError("❌ ERRORE: La variabile WEBHOOK_URL non è stata trovata!")
+if not DATABASE_URL:
+    raise ValueError("❌ DATABASE_URL non configurato!")
 
-# 🔹 Connessione al database con retry automatico
+# 🔹 Connessione al database
 def connect_db():
     global conn, cur
     for _ in range(5):
@@ -35,28 +35,10 @@ def connect_db():
             return
         except Exception as e:
             print(f"❌ Errore nella connessione a PostgreSQL: {e}")
-            time.sleep(5)  
+            time.sleep(5)
+    raise RuntimeError("❌ Impossibile connettersi al database dopo 5 tentativi.")
 
-    raise RuntimeError("❌ Impossibile connettersi al database dopo 5 tentativi. Arresto del bot.")
-    
 connect_db()
-
-# 🔹 Mantiene viva la connessione
-def keep_db_alive():
-    global conn, cur
-    while True:
-        try:
-            with conn.cursor() as cur:
-                cur.execute("SELECT 1")
-            conn.commit()
-        except Exception as e:
-            print(f"🔄 Connessione persa: {e}, riconnessione in corso...")
-            if conn:
-                conn.close()
-            connect_db()
-        time.sleep(600)
-threading.Thread(target=keep_db_alive, daemon=True).start()
-
 
 # 🔹 Creazione delle tabelle se non esistono
 cur.execute("""
@@ -69,220 +51,168 @@ cur.execute("""
 """)
 conn.commit()
 
-# 🔹 File ID dei premi
-video_premi = {
-    250: "BAACAgQAAxkBAANRZ65g5avV2vGeKWB2sB7rYpL-z3QAAhYVAAK4hXFRQOWBHIJF29E2BA",
-    500: "BAACAgQAAxkBAANTZ65hO01VjYtbcRdWzu4q3ZXhbUMAAiEVAAK4hXFRhpJ3Fxu4DaU2BA",
-    1000: "BAACAgQAAxkBAAM4Z65g2S0WiMdVd7Ian8V0OZXfFGoAAiMVAAK4hXFRONGfYWcnLqk2BA"
-}
+# 🔹 Funzione per registrare un utente
+def register_user(user_id, username):
+    cur.execute("SELECT user_id FROM users WHERE user_id = %s", (user_id,))
+    if not cur.fetchone():
+        cur.execute("INSERT INTO users (user_id, username) VALUES (%s, %s)", (user_id, username))
+        conn.commit()
+        return True
+    return False
 
-# 🔹 Funzioni database
-def add_user(user_id, username):
-    cur.execute("INSERT INTO users (user_id, username) VALUES (%s, %s) ON CONFLICT (user_id) DO NOTHING", (user_id, username))
-    conn.commit()
-
-def get_user_status(user_id):
-    cur.execute("SELECT xp, video_sbloccato FROM users WHERE user_id = %s", (user_id,))
-    return cur.fetchone()
-
-def update_xp(user_id, xp):
-    cur.execute("UPDATE users SET xp = xp + %s WHERE user_id = %s", (xp, user_id))
-    conn.commit()
-
-def reset_xp(user_id):
-    cur.execute("UPDATE users SET xp = 0, video_sbloccato = 0 WHERE user_id = %s", (user_id,))
-    conn.commit()
-
-# 🔹 Messaggio di benvenuto
-def send_welcome_message(user_id):
-    bot.send_message(user_id, 
-        "🔥 Vuoi entrare a far parte della community GLITCHERS?\n\n"
-        "📌 **Regole:**\n"
-        "- Reaction ai post: +5 XP (una volta per post)\n"
-        "- Visualizzazione media: +5 XP (una volta per post)\n"
-        "- Ogni ora il tuo XP viene aggiornato automaticamente e puoi verificare con il comando /status\n"
-        "- Quando raggiungi una soglia, ricevi una parte del video esclusivo!\n\n"
-        "🎯 **Soglie XP:**\n"
-        "✅ 250 XP → Prima parte del video\n"
-        "✅ 500 XP → Seconda parte del video\n"
-        "✅ 1000 XP → Video completo\n\n"
-        "👉 Il video diviso in tre parti è inedito e non presente in nessuna delle nostre piattaforme, "
-        "realizzato appositamente per questa esperienza.\n"
-        "📤 Ci saranno dei nuovi premi nella prossima stagione con nuovi video inediti.\n"
-        "👍 Collezionali tutti!\n"
-        "🚫 Se tutto ciò non è di tuo interesse, blocca semplicemente il bot e ognuno per la sua strada.\n"
-        "❤️ Rimani iscritto nel canale per poter partecipare, altrimenti gli XP non saranno conteggiati.\n"
-        "💌 Periodicamente manderò dei DM zozzi come messaggio qui sul bot per coccolare i miei fans."
-                    )
-    
-# 🔹 Messaggio di benvenuto automatico quando un utente entra nel canale
-@bot.chat_member_handler()
-def welcome_new_member(update):
-    if update.new_chat_member and not update.new_chat_member.user.is_bot:
-        user_id = update.new_chat_member.user.id
-        send_welcome_message(user_id)
-
-# 🔹 Comando /start
+# 🔹 Comando di benvenuto
 @bot.message_handler(commands=["start"])
 def send_welcome(message):
     user_id = message.from_user.id
-    username = message.from_user.username if message.from_user.username else None
-
-    add_user(user_id, username)
-
-    bot.send_message(user_id, "✅ Sei registrato! Inizia a guadagnare XP per sbloccare i premi! 🎉")
-    send_welcome_message(user_id)
-
-# 🔹 Comando /status
-@bot.message_handler(commands=["status"])
-def check_status(message):
-    user_id = message.from_user.id
-    user_status = get_user_status(user_id)
-
-    if user_status:
-        xp, video_sbloccati = user_status
-        bot.send_message(user_id, f"📊 Il tuo status:\n🔹 XP: {xp}\n🔹 Video sbloccati: {video_sbloccati}")
+    username = message.from_user.username or f"utente_{user_id}"
+    
+    if register_user(user_id, username):
+        bot.send_message(
+            user_id,
+            "🔥 Benvenuto nella community GLITCHERS!\n\n"
+            "📌 **Regole XP:**\n"
+            "- Reaction ai post: +5 XP\n"
+            "- Visualizzazione media: +5 XP\n"
+            "- Ogni ora il tuo XP viene aggiornato\n"
+            "- Sblocca video con XP!\n\n"
+            "🎯 **Premi XP:**\n"
+            "✅ 250 XP → Prima parte\n"
+            "✅ 500 XP → Seconda parte\n"
+            "✅ 1000 XP → Video completo\n\n"
+            "👉 Rispondi con **SI** per partecipare!"
+        )
     else:
-        bot.send_message(user_id, "❌ Non sei registrato. Usa /start per iscriverti.")
+        bot.send_message(user_id, "🔥 Sei già registrato!")
 
-# 🔹 Comando /classifica
+@bot.message_handler(func=lambda message: message.text.lower() == "si")
+def confirm_registration(message):
+    bot.send_message(message.chat.id, "✅ Sei registrato! Guadagna XP per sbloccare i premi! 🏆")
+
+    # 🔹 Comando /classifica - Mostra i migliori utenti XP
 @bot.message_handler(commands=["classifica"])
 def leaderboard(message):
     cur.execute("SELECT username, xp FROM users ORDER BY xp DESC LIMIT 10")
     top_users = cur.fetchall()
 
-if not top_users:
-    response = "🏆 <b>Top 10 Utenti XP</b>:\n Nessun utente in classifica."
-else:
-    response = "🏆 <b>Top 10 Utenti XP</b>:\n" + "\n".join([f"{i+1}. @{user[0]}: {user[1]} XP" for i, user in enumerate(top_users)])
+    if not top_users:
+        response = "🏆 <b>Top 10 Utenti XP</b>:\n Nessun utente in classifica."
+    else:
+        response = "🏆 <b>Top 10 Utenti XP</b>:\n" + "\n".join([
+            f"{i+1}. @{user[0]}: {user[1]} XP" for i, user in enumerate(top_users)
+        ])
 
-bot.send_message(message.chat.id, response, parse_mode="HTML")
+    bot.send_message(message.chat.id, response, parse_mode="HTML")
 
-@bot.message_handler(commands=["reset_utente"])
-def reset_user(message):
+# 🔹 Funzione per aggiungere XP
+def add_xp(user_id, amount):
+    cur.execute("UPDATE users SET xp = xp + %s WHERE user_id = %s", (amount, user_id))
+    conn.commit()
+
+# 🔹 Comando per verificare il proprio XP
+@bot.message_handler(commands=["xp"])
+def check_xp(message):
+    user_id = message.from_user.id
+    cur.execute("SELECT xp FROM users WHERE user_id = %s", (user_id,))
+    xp = cur.fetchone()
+
+    if xp:
+        bot.send_message(message.chat.id, f"🔹 Il tuo XP attuale: {xp[0]}")
+    else:
+        bot.send_message(message.chat.id, "❌ Non sei registrato nel sistema XP.")
+
+# 🔹 Comando amministrativo: Reset XP di un utente
+@bot.message_handler(commands=["reset_xp"])
+def reset_xp(message):
+    if message.from_user.id == OWNER_ID:
+        args = message.text.split()
+        if len(args) < 2:
+            bot.send_message(message.chat.id, "⚠️ Usa: /reset_xp @username")
+            return
+
+        username = args[1].strip("@")
+        cur.execute("UPDATE users SET xp = 0 WHERE username = %s", (username,))
+        conn.commit()
+        bot.send_message(message.chat.id, f"✅ XP di @{username} resettato.")
+
+# 🔹 Comando per inviare un messaggio a tutti gli utenti
+@bot.message_handler(commands=["broadcast"])
+def broadcast_message(message):
+    if message.from_user.id == OWNER_ID:
+        text = message.text.replace("/broadcast", "").strip()
+        cur.execute("SELECT user_id FROM users")
+        users = cur.fetchall()
+
+        for user in users:
+            try:
+                bot.send_message(user[0], text)
+            except:
+                continue
+
+        bot.send_message(message.chat.id, "✅ Messaggio inviato a tutti gli utenti registrati!")
+
+# 🔹 Comando /ban
+@bot.message_handler(commands=["ban"])
+def ban_user(message):
     if message.from_user.id != OWNER_ID:
-        return bot.send_message(message.chat.id, "⛔ Non hai i permessi per usare questo comando.")
+        return
 
-    try:
-        # 🔹 Estrai username o ID dal comando
-        username_or_id = message.text.split()[1].replace("@", "").strip()
+    args = message.text.split()
+    if len(args) < 2:
+        bot.send_message(message.chat.id, "⚠️ Usa: /ban @username")
+        return
 
-        # 🔹 Cerca l'utente nel database
-        cur.execute("SELECT user_id FROM users WHERE username = %s OR CAST(user_id AS TEXT) = %s", (username_or_id, username_or_id))
-        result = cur.fetchone()
+    username = args[1].strip("@")
+    cur.execute("DELETE FROM users WHERE username = %s", (username,))
+    conn.commit()
+    bot.send_message(message.chat.id, f"🚫 Utente @{username} bannato!")
 
-        if result:
-            user_id = result[0]
-            cur.execute("UPDATE users SET xp = 0, video_sbloccato = 0 WHERE user_id = %s", (user_id,))
-            conn.commit()
-            bot.send_message(message.chat.id, f"✅ XP e premi di @{username_or_id} azzerati con successo!")
-        else:
-            bot.send_message(message.chat.id, f"❌ Utente @{username_or_id} non trovato nel database.")
-
-    except IndexError:
-        bot.send_message(message.chat.id, "⚠️ Usa il comando così: /reset_utente @username o /reset_utente user_id")
-        
-# 🔹 Comando /totale
-@bot.message_handler(commands=["totale"])
+# 🔹 Comando /totali - utenti registrati vs attivi nel canale
+@bot.message_handler(commands=["totali"])
 def total_users(message):
     if message.from_user.id != OWNER_ID:
-        return bot.send_message(message.chat.id, "⛔ Non hai i permessi per usare questo comando.")
+        return
 
     cur.execute("SELECT COUNT(*) FROM users")
-    total_registered = cur.fetchone()[0]
+    total_users = cur.fetchone()[0]
 
-    bot.send_message(message.chat.id, f"👥 <b>Utenti registrati nel bot:</b> {total_registered}", parse_mode="HTML")
+    active_users = sum(
+        1 for user in cur.execute("SELECT user_id FROM users").fetchall()
+        if bot.get_chat_member(CHANNEL_ID, user[0]).status in ["member", "administrator", "creator"]
+    )
 
-# 🔹 Comando /attivi_oggi
+    bot.send_message(message.chat.id, f"📊 Utenti registrati: {total_users}\n🔹 Ancora nel canale: {active_users}")
+
+# 🔹 Comando /attivi_oggi - utenti attivi nelle ultime 24 ore
 @bot.message_handler(commands=["attivi_oggi"])
 def active_today(message):
     if message.from_user.id != OWNER_ID:
         return
 
-    cur.execute("SELECT COUNT(*) FROM users WHERE xp > 0")
+    cur.execute("SELECT COUNT(*) FROM users WHERE last_active > NOW() - INTERVAL '1 day'")
     active_users = cur.fetchone()[0]
-
     bot.send_message(message.chat.id, f"📊 Utenti attivi oggi: {active_users}")
 
-@bot.message_handler(commands=["dm"])
-def send_dm(message):
+# 🔹 Comando /premi_riscossi - utenti che hanno riscattato video
+@bot.message_handler(commands=["premi_riscossi"])
+def claimed_rewards(message):
     if message.from_user.id != OWNER_ID:
-        return bot.send_message(message.chat.id, "⛔ Non hai i permessi per usare questo comando.")
+        return
 
-    cur.execute("SELECT user_id FROM users")
-    user_ids = cur.fetchall()
+    cur.execute("SELECT username, video_sbloccato FROM users WHERE video_sbloccato > 0 ORDER BY video_sbloccato DESC")
+    users = cur.fetchall()
 
-    if message.reply_to_message:
-        for user_id in user_ids:
-            try:
-                bot.copy_message(user_id[0], message.chat.id, message.reply_to_message.message_id)
-            except:
-                pass
-        bot.send_message(message.chat.id, "✅ Messaggio inoltrato a tutti gli utenti registrati.")
+    if not users:
+        bot.send_message(message.chat.id, "🎥 Nessun utente ha ancora riscattato un premio.")
     else:
-        text = message.text.replace("/dm", "").strip()
-        if text:
-            for user_id in user_ids:
-                try:
-                    bot.send_message(user_id[0], text)
-                except:
-                    pass
-            bot.send_message(message.chat.id, "✅ Messaggio inviato a tutti gli utenti registrati.")
-        else:
-            bot.send_message(message.chat.id, "⚠️ Usa il comando così: /dm [messaggio] o rispondi a un messaggio.")
-            
-# 🔹 Comando /ban
-@bot.message_handler(commands=["ban"])
-def ban_user(message):
-    if message.from_user.id != OWNER_ID:
-        return bot.send_message(message.chat.id, "⛔ Non hai i permessi per usare questo comando.")
-
-    try:
-        username_or_id = message.text.split()[1].replace("@", "").strip()
-        cur.execute("DELETE FROM users WHERE username = %s OR CAST(user_id AS TEXT) = %s RETURNING user_id", (username_or_id, username_or_id))
-        result = cur.fetchone()
-
-        if result:
-            user_id = result[0]
-            bot.kick_chat_member(CHANNEL_ID, user_id)
-            conn.commit()  # 🔹 Assicura che il database sia aggiornato
-            bot.send_message(message.chat.id, f"🚨 Utente @{username_or_id} bannato con successo!")
-        else:
-            bot.send_message(message.chat.id, f"❌ Utente @{username_or_id} non trovato.")
-    except IndexError:
-        bot.send_message(message.chat.id, "⚠️ Usa il comando così: /ban @username o /ban user_id")
-
-def setup_webhook():
-    print("🔄 Controllo dello stato del webhook...")
-    try:
-        response = requests.get(f"https://api.telegram.org/bot{TOKEN}/getWebhookInfo").json()
-        current_url = response.get("result", {}).get("url", "")
-
-        if current_url == WEBHOOK_URL:
-            print(f"ℹ️ Webhook già attivo su {WEBHOOK_URL}")
-            return  
-
-        print("🔄 Webhook non corrispondente, lo aggiorno...")
-        bot.remove_webhook()  # Rimuove il vecchio webhook
-        time.sleep(1)
+        response = "🎥 <b>Premi riscossi:</b>\n" + "\n".join(
+            f"🔹 @{user[0]} → {user[1]} video sbloccati" for user in users
+        )
+        bot.send_message(message.chat.id, response, parse_mode="HTML")
         
-        success = bot.set_webhook(url=WEBHOOK_URL)  # Imposta il nuovo webhook
-        
-        if success:
-            print(f"✅ Webhook aggiornato su {WEBHOOK_URL}")
-        else:
-            print("❌ Errore nell'impostazione del webhook!")
-    except Exception as e:
-        print(f"❌ Errore durante la configurazione del webhook: {e}")
 
-@app.route("/webhook", methods=["POST"])
-def webhook():
-    if request.method == "POST":
-        update = telebot.types.Update.de_json(request.get_data().decode("utf-8"))
-        bot.process_new_updates([update])
-        return "OK", 200
-    return "Metodo non consentito", 405
-    
+# 🔹 Avvio Bot con Polling
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    print("🚀 Bot Glitchers XP attivo con polling...")
+    bot.remove_webhook()
+    bot.infinity_polling()
     
