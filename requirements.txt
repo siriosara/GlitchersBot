@@ -1,4 +1,5 @@
 telebot
 flask
-psycopg2
+psycopg2-binary
 requests
+gunicorn
