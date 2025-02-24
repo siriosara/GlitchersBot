@@ -1,1 +1,1 @@
-web: gunicorn wsgi:app
+worker: python Bot_glitchers.py
