@@ -58,7 +58,7 @@ def send_welcome(message):
             user_id,
             f"🔥 Vuoi entrare a far parte della community GLITCHERS?\n\n"
             f"📌 **Regole:**\n"
-            f"- Reaction ai post: +5 XP (una volta per post)\n"
+            f"- Reaction ai post: +5 XP (una volta sola per post)\n"
             f"- Visualizzazione media: +5 XP (una volta per post)\n"
             f"- Ogni ora il tuo XP viene aggiornato automaticamente\n"
             f"- Quando raggiungi una soglia, ricevi una parte del video esclusivo!\n\n"
