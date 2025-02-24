@@ -112,7 +112,7 @@ def send_welcome_message(user_id):
         "👍 Collezionali tutti!\n"
         "🚫 Se tutto ciò non è di tuo interesse, blocca semplicemente il bot e ognuno per la sua strada.\n"
         "❤️ Rimani iscritto nel canale per poter partecipare, altrimenti gli XP non saranno conteggiati.\n"
-        "💌 Periodicamente manderò dei DM zozzi come messaggio qui sul bot per coccolare i miei fan."
+        "💌 Periodicamente manderò dei DM zozzi come messaggio qui sul bot per coccolare i miei fans."
                     )
     
 # 🔹 Messaggio di benvenuto automatico quando un utente entra nel canale
