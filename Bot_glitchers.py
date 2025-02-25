@@ -151,6 +151,9 @@ def check_rewards():
 
 threading.Thread(target=check_rewards, daemon=True).start()
 
+bot.remove_webhook()
+time.sleep(1)  # Aspetta un secondo per evitare problemi di tempistica
+
 def start_polling():
     while True:
         try:
