@@ -87,7 +87,6 @@ def register_user(message):
 
     release_db(conn, cur)
 
-# 🔹 Comando /ban
 @bot.message_handler(commands=['ban'])
 def ban_user(message):
     if message.from_user.id != OWNER_ID:
@@ -101,31 +100,31 @@ def ban_user(message):
     
     username = args[1].replace("@", "")
     
-    conn, cur = connect_db()
+    conn, cur = get_db()
     cur.execute("DELETE FROM users WHERE username = %s", (username,))
     conn.commit()
-    conn.close()
+    release_db(conn, cur)
     
-    bot.reply_to(message, f"✅ L'utente @{username} è stato bannato dal bot.")
+    bot.reply_to(message, f"✅ L'utente @{username} è stato rimosso dal database del bot.")
 
-# 🔹 Comando /dm (invio di messaggi e media)
+
 @bot.message_handler(commands=['dm'])
 def send_dm(message):
     if message.from_user.id != OWNER_ID:
         bot.reply_to(message, "❌ Non hai i permessi per eseguire questo comando.")
         return
 
-    conn, cur = connect_db()
+    conn, cur = get_db()
     cur.execute("SELECT user_id FROM users")
     users = cur.fetchall()
-    conn.close()
+    release_db(conn, cur)
     
     if not users:
         bot.reply_to(message, "⚠️ Nessun utente registrato nel bot.")
         return
     
     if not message.reply_to_message:
-        bot.reply_to(message, "❌ Rispondi a un messaggio o a un media con /dm per inviarlo a tutti gli utenti.")
+        bot.reply_to(message, "❌ Rispondi a un messaggio (testo o media) con /dm per inviarlo a tutti gli utenti.")
         return
     
     sent_count = 0
@@ -148,8 +147,8 @@ def send_dm(message):
         except Exception:
             failed_count += 1
 
-    bot.reply_to(message, f"📩 Messaggio inviato con successo a {sent_count} utenti. ❌ Falliti: {failed_count}")
-
+    bot.reply_to(message, f"📩 Messaggio inviato a {sent_count} utenti. ❌ Falliti: {failed_count}")
+    
 # 🔹 Comando /totali
 @bot.message_handler(commands=["totali"])
 def total_users(message):
