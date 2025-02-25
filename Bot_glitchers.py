@@ -266,6 +266,31 @@ def leaderboard(message):
     bot.send_message(message.chat.id, response, parse_mode="HTML")
     release_db(conn, cur)
 
+def update_xp_periodically():
+    while True:
+        conn, cur = get_db()
+
+        # Recupera tutti gli utenti e aggiorna gli XP in base alle interazioni registrate
+        cur.execute("""
+            UPDATE users
+            SET xp = xp + 5
+            WHERE user_id IN (
+                SELECT user_id FROM interactions WHERE reacted = TRUE OR viewed = TRUE
+            );
+        """)
+        conn.commit()
+
+        # Reset delle interazioni per evitare che lo stesso post dia più XP
+        cur.execute("UPDATE interactions SET reacted = FALSE, viewed = FALSE;")
+        conn.commit()
+
+        release_db(conn, cur)
+        
+        print("✅ XP aggiornati con successo!")
+        
+        # Attendi 3600 secondi (1 ora) prima di aggiornare di nuovo
+        time.sleep(3600)
+        
 def start_polling():
     while True:
         try:
@@ -274,6 +299,9 @@ def start_polling():
         except Exception as e:
             print(f"⚠️ Errore nel polling: {e}")
             time.sleep(5)  # Aspetta 5 secondi prima di riavviare
+
+# Avvia il thread per aggiornare gli XP ogni ora
+threading.Thread(target=update_xp_periodically, daemon=True).start()
 
 if __name__ == "__main__":
     start_polling()
