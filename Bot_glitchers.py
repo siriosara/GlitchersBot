@@ -90,11 +90,63 @@ def register_user(message):
 
     release_db(conn, cur)
 
-@bot.message_handler(func=lambda message: message.text in ["❤️", "🔥", "👍", "💯"])
-def reaction_xp(message):
-    update_xp(message.from_user.id, 5)
-    bot.reply_to(message, "✅ Hai guadagnato 5 XP!")
+# 🔹 Nuove funzioni per tracciare interazioni
+def user_has_interacted(user_id, post_id, interaction_type):
+    """
+    Controlla se l'utente ha già interagito con il post specificato.
+    interaction_type può essere 'reacted' o 'viewed'.
+    """
+    conn, cur = get_db()
+    cur.execute(f"SELECT {interaction_type} FROM interactions WHERE user_id = %s AND post_id = %s", 
+                (user_id, post_id))
+    result = cur.fetchone()
+    release_db(conn, cur)
+    
+    return result and result[0]  # Se esiste e il valore è True, restituisce True
 
+def mark_interaction(user_id, post_id, interaction_type):
+    """
+    Segna l'interazione nel database per evitare che l'utente possa guadagnare XP più volte dallo stesso post.
+    """
+    conn, cur = get_db()
+    cur.execute(f"""
+        INSERT INTO interactions (user_id, post_id, {interaction_type}) 
+        VALUES (%s, %s, TRUE)
+        ON CONFLICT (user_id, post_id) DO UPDATE SET {interaction_type} = TRUE
+    """, (user_id, post_id))
+    conn.commit()
+    release_db(conn, cur)
+
+def add_xp_for_interaction(user_id, post_id, interaction_type):
+    """
+    Aggiunge XP solo se l'utente non ha già interagito con il post.
+    """
+    if not user_has_interacted(user_id, post_id, interaction_type):
+        update_xp(user_id, 5)  # Aggiunge 5 XP
+        mark_interaction(user_id, post_id, interaction_type)
+
+# 🔹 Gestione XP per reaction ai post nel canale
+@bot.channel_post_handler(func=lambda message: message.reply_markup is not None)
+def handle_reaction(message):
+    """
+    Assegna XP quando un utente mette una reaction a un post.
+    """
+    user_id = message.from_user.id
+    post_id = message.message_id  # L'ID del post che ha ricevuto la reaction
+
+    add_xp_for_interaction(user_id, post_id, "reacted")
+
+# 🔹 Gestione XP per visualizzazione media nel canale
+@bot.channel_post_handler(content_types=["photo", "video"])
+def handle_media_view(message):
+    """
+    Assegna XP quando un utente visualizza un video o una foto.
+    """
+    user_id = message.from_user.id
+    post_id = message.message_id  # L'ID del post che contiene il media
+
+    add_xp_for_interaction(user_id, post_id, "viewed")
+    
 def check_rewards_for_user(user_id):
     conn, cur = get_db()
     try:
