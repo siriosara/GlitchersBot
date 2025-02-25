@@ -1,2 +1,8 @@
 [phases.setup]
-nixPkgs = ["python312", "pip"]
+nixPkgs = ["python312", "pip", "postgresql"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[start]
+cmds = ["python Bot_glitchers.py"]
