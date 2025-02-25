@@ -8,9 +8,6 @@ from psycopg2 import pool
 from flask import Flask
 from datetime import datetime
 
-bot.remove_webhook()
-time.sleep(1)  # Aspetta un secondo per evitare problemi di tempistica
-
 app = Flask(__name__)
 
 # 🔹 Token del bot e ID del canale
@@ -21,6 +18,9 @@ CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 CHANNEL_LINK = os.getenv("CHANNEL_LINK")  # Manca nel tuo codice precedente
 
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
+
+bot.remove_webhook()
+time.sleep(1)  # Aspetta un secondo per evitare problemi di tempistica
 
 # 🔹 Database Connection Pool
 try:
@@ -38,6 +38,15 @@ def release_db(conn, cur):
     cur.close()
     db_pool.putconn(conn)
 
+def update_xp(user_id, xp_gained):
+    conn, cur = get_db()
+    cur.execute("UPDATE users SET xp = xp + %s WHERE user_id = %s", (xp_gained, user_id))
+    conn.commit()
+    release_db(conn, cur)
+
+    # Controlla subito se l'utente ha sbloccato premi
+    check_rewards_for_user(user_id)
+    
 # Connessione al database
 def connect_db():
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
@@ -87,6 +96,26 @@ def register_user(message):
                 (user_id, message.from_user.username))
     conn.commit()
     bot.send_message(user_id, "✅ Sei registrato! Inizia a guadagnare XP per sbloccare i premi! 🏆")
+
+    release_db(conn, cur)
+
+@bot.message_handler(func=lambda message: message.text in ["❤️", "🔥", "👍", "💯"])
+def reaction_xp(message):
+    update_xp(message.from_user.id, 5)
+    bot.reply_to(message, "✅ Hai guadagnato 5 XP!")
+
+def check_rewards_for_user(user_id):
+    conn, cur = get_db()
+    cur.execute("SELECT xp, video_sbloccato FROM users WHERE user_id = %s", (user_id,))
+    result = cur.fetchone()
+
+    if result:
+        xp, video_sbloccato = result
+        for soglia, file_id in video_premi.items():
+            if xp >= soglia and video_sbloccato < soglia:
+                bot.send_video(user_id, file_id, caption=f"🎉 Hai sbloccato il premio da {soglia} XP!")
+                cur.execute("UPDATE users SET video_sbloccato = %s WHERE user_id = %s", (soglia, user_id))
+                conn.commit()
 
     release_db(conn, cur)
 
