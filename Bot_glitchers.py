@@ -8,6 +8,9 @@ from psycopg2 import pool
 from flask import Flask
 from datetime import datetime
 
+bot.remove_webhook()
+time.sleep(1)  # Aspetta un secondo per evitare problemi di tempistica
+
 app = Flask(__name__)
 
 # 🔹 Token del bot e ID del canale
@@ -199,9 +202,6 @@ def check_rewards():
         time.sleep(3600)  # Controllo ogni ora
 
 threading.Thread(target=check_rewards, daemon=True).start()
-
-bot.remove_webhook()
-time.sleep(1)  # Aspetta un secondo per evitare problemi di tempistica
 
 def start_polling():
     while True:
