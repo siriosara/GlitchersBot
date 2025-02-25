@@ -19,9 +19,6 @@ CHANNEL_LINK = os.getenv("CHANNEL_LINK")  # Manca nel tuo codice precedente
 
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
-bot.remove_webhook()
-time.sleep(1)  # Aspetta un secondo per evitare problemi di tempistica
-
 # 🔹 Database Connection Pool
 try:
     db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, DATABASE_URL, sslmode='require')
@@ -46,12 +43,6 @@ def update_xp(user_id, xp_gained):
 
     # Controlla subito se l'utente ha sbloccato premi
     check_rewards_for_user(user_id)
-    
-# Connessione al database
-def connect_db():
-    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-    cur = conn.cursor()
-    return conn, cur
     
 # 🔹 File ID dei Premi XP
 video_premi = {
@@ -106,18 +97,22 @@ def reaction_xp(message):
 
 def check_rewards_for_user(user_id):
     conn, cur = get_db()
-    cur.execute("SELECT xp, video_sbloccato FROM users WHERE user_id = %s", (user_id,))
-    result = cur.fetchone()
+    try:
+        cur.execute("SELECT xp, video_sbloccato FROM users WHERE user_id = %s FOR UPDATE", (user_id,))
+        result = cur.fetchone()
 
-    if result:
-        xp, video_sbloccato = result
-        for soglia, file_id in video_premi.items():
-            if xp >= soglia and video_sbloccato < soglia:
-                bot.send_video(user_id, file_id, caption=f"🎉 Hai sbloccato il premio da {soglia} XP!")
-                cur.execute("UPDATE users SET video_sbloccato = %s WHERE user_id = %s", (soglia, user_id))
-                conn.commit()
-
-    release_db(conn, cur)
+        if result:
+            xp, video_sbloccato = result
+            for soglia, file_id in video_premi.items():
+                if xp >= soglia and video_sbloccato < soglia:
+                    bot.send_video(user_id, file_id, caption=f"🎉 Hai sbloccato il premio da {soglia} XP!")
+                    cur.execute("UPDATE users SET video_sbloccato = %s WHERE user_id = %s", (soglia, user_id))
+                    conn.commit()
+    except Exception as e:
+        print(f"⚠️ Errore aggiornando premi XP per {user_id}: {e}")
+    finally:
+        release_db(conn, cur)
+        
 
 @bot.message_handler(commands=['ban'])
 def ban_user(message):
@@ -133,13 +128,18 @@ def ban_user(message):
     username = args[1].replace("@", "")
     
     conn, cur = get_db()
-    cur.execute("DELETE FROM users WHERE username = %s", (username,))
-    conn.commit()
+    cur.execute("SELECT user_id FROM users WHERE username = %s", (username,))
+    user_exists = cur.fetchone()
+
+    if not user_exists:
+        bot.reply_to(message, f"⚠️ L'utente @{username} non è registrato nel database.")
+    else:
+        cur.execute("DELETE FROM users WHERE username = %s", (username,))
+        conn.commit()
+        bot.reply_to(message, f"✅ L'utente @{username} è stato rimosso dal database del bot.")
+
     release_db(conn, cur)
     
-    bot.reply_to(message, f"✅ L'utente @{username} è stato rimosso dal database del bot.")
-
-
 @bot.message_handler(commands=['dm'])
 def send_dm(message):
     if message.from_user.id != OWNER_ID:
@@ -163,8 +163,8 @@ def send_dm(message):
     failed_count = 0
 
     for user in users:
+        user_id = user[0]
         try:
-            user_id = user[0]
             if message.reply_to_message.text:
                 bot.send_message(user_id, message.reply_to_message.text, parse_mode="HTML")
             elif message.reply_to_message.photo:
@@ -176,8 +176,9 @@ def send_dm(message):
             elif message.reply_to_message.animation:
                 bot.send_animation(user_id, message.reply_to_message.animation.file_id, caption=message.reply_to_message.caption or "")
             sent_count += 1
-        except Exception:
+        except Exception as e:
             failed_count += 1
+            print(f"⚠️ Errore inviando DM a {user_id}: {e}")
 
     bot.reply_to(message, f"📩 Messaggio inviato a {sent_count} utenti. ❌ Falliti: {failed_count}")
     
@@ -213,25 +214,6 @@ def leaderboard(message):
     bot.send_message(message.chat.id, response, parse_mode="HTML")
     release_db(conn, cur)
 
-# 🔹 Controllo XP e invio Premi
-def check_rewards():
-    while True:
-        conn, cur = get_db()
-        cur.execute("SELECT user_id, xp, video_sbloccato FROM users")
-        users = cur.fetchall()
-
-        for user_id, xp, video_sbloccato in users:
-            for soglia, file_id in video_premi.items():
-                if xp >= soglia and video_sbloccato < soglia:
-                    bot.send_video(user_id, file_id, caption=f"🎉 Hai sbloccato il premio da {soglia} XP!")
-                    cur.execute("UPDATE users SET video_sbloccato = %s WHERE user_id = %s", (soglia, user_id))
-                    conn.commit()
-
-        release_db(conn, cur)
-        time.sleep(3600)  # Controllo ogni ora
-
-threading.Thread(target=check_rewards, daemon=True).start()
-
 def start_polling():
     while True:
         try:
@@ -239,7 +221,7 @@ def start_polling():
             bot.infinity_polling(timeout=10, long_polling_timeout=5)
         except Exception as e:
             print(f"⚠️ Errore nel polling: {e}")
-            time.sleep(5)
+            time.sleep(5)  # Aspetta 5 secondi prima di riavviare
 
 if __name__ == "__main__":
     start_polling()
