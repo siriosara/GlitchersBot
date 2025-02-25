@@ -35,6 +35,12 @@ def release_db(conn, cur):
     cur.close()
     db_pool.putconn(conn)
 
+# Connessione al database
+def connect_db():
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+    cur = conn.cursor()
+    return conn, cur
+    
 # 🔹 File ID dei Premi XP
 video_premi = {
     250: "BAACAgQAAxkBAANRZ65g5avV2vGeKWB2sB7rYpL-z3QAAhYVAAK4hXFRQOWBHIJF29E2BA",
@@ -81,6 +87,69 @@ def register_user(message):
 
     release_db(conn, cur)
 
+# 🔹 Comando /ban
+@bot.message_handler(commands=['ban'])
+def ban_user(message):
+    if message.from_user.id != OWNER_ID:
+        bot.reply_to(message, "❌ Non hai i permessi per eseguire questo comando.")
+        return
+    
+    args = message.text.split()
+    if len(args) < 2:
+        bot.reply_to(message, "❌ Usa il comando così: /ban @username")
+        return
+    
+    username = args[1].replace("@", "")
+    
+    conn, cur = connect_db()
+    cur.execute("DELETE FROM users WHERE username = %s", (username,))
+    conn.commit()
+    conn.close()
+    
+    bot.reply_to(message, f"✅ L'utente @{username} è stato bannato dal bot.")
+
+# 🔹 Comando /dm (invio di messaggi e media)
+@bot.message_handler(commands=['dm'])
+def send_dm(message):
+    if message.from_user.id != OWNER_ID:
+        bot.reply_to(message, "❌ Non hai i permessi per eseguire questo comando.")
+        return
+
+    conn, cur = connect_db()
+    cur.execute("SELECT user_id FROM users")
+    users = cur.fetchall()
+    conn.close()
+    
+    if not users:
+        bot.reply_to(message, "⚠️ Nessun utente registrato nel bot.")
+        return
+    
+    if not message.reply_to_message:
+        bot.reply_to(message, "❌ Rispondi a un messaggio o a un media con /dm per inviarlo a tutti gli utenti.")
+        return
+    
+    sent_count = 0
+    failed_count = 0
+
+    for user in users:
+        try:
+            user_id = user[0]
+            if message.reply_to_message.text:
+                bot.send_message(user_id, message.reply_to_message.text, parse_mode="HTML")
+            elif message.reply_to_message.photo:
+                bot.send_photo(user_id, message.reply_to_message.photo[-1].file_id, caption=message.reply_to_message.caption or "")
+            elif message.reply_to_message.video:
+                bot.send_video(user_id, message.reply_to_message.video.file_id, caption=message.reply_to_message.caption or "")
+            elif message.reply_to_message.document:
+                bot.send_document(user_id, message.reply_to_message.document.file_id, caption=message.reply_to_message.caption or "")
+            elif message.reply_to_message.animation:
+                bot.send_animation(user_id, message.reply_to_message.animation.file_id, caption=message.reply_to_message.caption or "")
+            sent_count += 1
+        except Exception:
+            failed_count += 1
+
+    bot.reply_to(message, f"📩 Messaggio inviato con successo a {sent_count} utenti. ❌ Falliti: {failed_count}")
+
 # 🔹 Comando /totali
 @bot.message_handler(commands=["totali"])
 def total_users(message):
@@ -97,25 +166,6 @@ def total_users(message):
     active_users = sum(1 for user in all_users if bot.get_chat_member(CHANNEL_ID, user[0]).status in ["member", "administrator", "creator"])
 
     bot.send_message(message.chat.id, f"📊 Totale utenti: {total_users}\n🔹 Ancora nel canale: {active_users}")
-    release_db(conn, cur)
-
-# 🔹 Comando /ban per rimuovere utenti
-@bot.message_handler(commands=["ban"])
-def ban_user(message):
-    if message.from_user.id != OWNER_ID:
-        return
-
-    if not message.reply_to_message:
-        bot.reply_to(message, "⚠️ Devi rispondere a un messaggio per bannare l'utente.")
-        return
-
-    user_id = message.reply_to_message.from_user.id
-    conn, cur = get_db()
-
-    cur.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
-    conn.commit()
-    
-    bot.send_message(message.chat.id, f"❌ Utente {user_id} rimosso dal database.")
     release_db(conn, cur)
 
 # 🔹 Comando `/classifica`
