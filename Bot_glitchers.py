@@ -10,6 +10,13 @@ from datetime import datetime
 
 app = Flask(__name__)
 
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    update = request.get_json()
+    if update:
+        bot.process_new_updates([telebot.types.Update.de_json(update)])
+    return "OK", 200
+    
 # 🔹 Token del bot e ID del canale
 TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -336,17 +343,8 @@ def update_xp_periodically():
         # Attendi 3600 secondi (1 ora) prima di aggiornare di nuovo
         time.sleep(3600)
         
-def start_polling():
-    while True:
-        try:
-            print("🚀 Avvio bot...")
-            bot.infinity_polling(timeout=10, long_polling_timeout=5)
-        except Exception as e:
-            print(f"⚠️ Errore nel polling: {e}")
-            time.sleep(5)  # Aspetta 5 secondi prima di riavviare
-
 # Avvia il thread per aggiornare gli XP ogni ora
 threading.Thread(target=update_xp_periodically, daemon=True).start()
 
 if __name__ == "__main__":
-    start_polling()
+    app.run(host="0.0.0.0", port=8080)
