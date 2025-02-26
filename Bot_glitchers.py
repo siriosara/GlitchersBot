@@ -37,11 +37,16 @@ def release_db(conn, cur):
 
 def update_xp(user_id, xp_gained):
     conn, cur = get_db()
-    cur.execute("UPDATE users SET xp = xp + %s WHERE user_id = %s", (xp_gained, user_id))
+    cur.execute("UPDATE users SET xp = xp + %s WHERE user_id = %s RETURNING xp", (xp_gained, user_id))
+    new_xp = cur.fetchone()
     conn.commit()
     release_db(conn, cur)
 
-    # Controlla subito se l'utente ha sbloccato premi
+    if new_xp:
+        print(f"✅ XP aggiornati per user_id={user_id}. Nuovo XP: {new_xp[0]}")
+    else:
+        print(f"⚠️ Nessun XP aggiornato per user_id={user_id}")
+    
     check_rewards_for_user(user_id)
     
 # 🔹 File ID dei Premi XP
@@ -123,7 +128,6 @@ def add_xp_for_interaction(user_id, post_id, interaction_type):
         update_xp(user_id, 5)  # Aggiunge 5 XP
         mark_interaction(user_id, post_id, interaction_type)
 
-# 🔹 Gestione XP per reaction ai post nel canale
 @bot.channel_post_handler(func=lambda message: message.reply_markup is not None)
 def handle_reaction(message):
     """
@@ -131,11 +135,12 @@ def handle_reaction(message):
     """
     user_id = message.from_user.id
     post_id = message.message_id  # L'ID del post che ha ricevuto la reaction
+    interaction_type = "reacted"  # Definisco esplicitamente il tipo di interazione
 
     print(f"➡️ Registrazione interazione: user_id={user_id}, post_id={post_id}, type={interaction_type}")
-    
-    add_xp_for_interaction(user_id, post_id, "reacted")
 
+    add_xp_for_interaction(user_id, post_id, interaction_type)
+    
 def add_xp_for_interaction(user_id, post_id, interaction_type):
     if not user_has_interacted(user_id, post_id, interaction_type):
         print(f"✅ Aggiungendo XP per {interaction_type} su post {post_id} dell'utente {user_id}")  # DEBUG
