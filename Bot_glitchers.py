@@ -174,7 +174,37 @@ def check_rewards_for_user(user_id):
         print(f"⚠️ Errore aggiornando premi XP per {user_id}: {e}")
     finally:
         release_db(conn, cur)
-        
+
+# 🔹 Comando /status per mostrare il punteggio attuale dell'utente
+@bot.message_handler(commands=["status"])
+def user_status(message):
+    user_id = message.from_user.id
+    conn, cur = get_db()
+
+    # Recupera XP e premi sbloccati dell'utente
+    cur.execute("SELECT xp, video_sbloccato FROM users WHERE user_id = %s", (user_id,))
+    result = cur.fetchone()
+    
+    if result:
+        xp, video_sbloccato = result
+        response = f"📊 <b>Il tuo status XP</b>:\n" \
+                   f"🏆 XP Attuali: {xp}\n" \
+                   f"🔓 Video sbloccato fino a: {video_sbloccato} XP\n\n" \
+                   f"🎯 Prossima soglia XP:\n"
+
+        # Trova la prossima soglia
+        next_threshold = min((soglia for soglia in video_premi.keys() if soglia > xp), default=None)
+        if next_threshold:
+            response += f"➡️ {next_threshold} XP per sbloccare il prossimo premio!"
+        else:
+            response += "✅ Hai sbloccato tutti i premi disponibili!"
+
+    else:
+        response = "❌ Non sei ancora registrato nel sistema XP! Usa /start per iniziare."
+
+    bot.send_message(user_id, response, parse_mode="HTML")
+    release_db(conn, cur)
+    
 
 @bot.message_handler(commands=['ban'])
 def ban_user(message):
