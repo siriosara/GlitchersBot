@@ -105,9 +105,7 @@ def user_has_interacted(user_id, post_id, interaction_type):
     return result and result[0]  # Se esiste e il valore è True, restituisce True
 
 def mark_interaction(user_id, post_id, interaction_type):
-    """
-    Segna l'interazione nel database per evitare che l'utente possa guadagnare XP più volte dallo stesso post.
-    """
+    print(f"🔍 Registrando interazione: {interaction_type} per user_id {user_id} su post_id {post_id}")  # DEBUG
     conn, cur = get_db()
     cur.execute(f"""
         INSERT INTO interactions (user_id, post_id, {interaction_type}) 
@@ -116,7 +114,7 @@ def mark_interaction(user_id, post_id, interaction_type):
     """, (user_id, post_id))
     conn.commit()
     release_db(conn, cur)
-
+    
 def add_xp_for_interaction(user_id, post_id, interaction_type):
     """
     Aggiunge XP solo se l'utente non ha già interagito con il post.
@@ -138,6 +136,14 @@ def handle_reaction(message):
     
     add_xp_for_interaction(user_id, post_id, "reacted")
 
+def add_xp_for_interaction(user_id, post_id, interaction_type):
+    if not user_has_interacted(user_id, post_id, interaction_type):
+        print(f"✅ Aggiungendo XP per {interaction_type} su post {post_id} dell'utente {user_id}")  # DEBUG
+        update_xp(user_id, 5)
+        mark_interaction(user_id, post_id, interaction_type)
+    else:
+        print(f"⚠️ L'utente {user_id} ha già interagito con il post {post_id}")  # DEBUG
+        
 # 🔹 Gestione XP per visualizzazione media nel canale
 @bot.channel_post_handler(content_types=["photo", "video"])
 def handle_media_view(message):
