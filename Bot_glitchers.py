@@ -281,7 +281,7 @@ def update_xp_periodically():
         conn.commit()
 
         # Reset delle interazioni per evitare che lo stesso post dia più XP
-        cur.execute("UPDATE interactions SET reacted = FALSE, viewed = FALSE;")
+        cur.execute("DELETE FROM interactions WHERE reacted = TRUE OR viewed = TRUE;")
         conn.commit()
 
         release_db(conn, cur)
