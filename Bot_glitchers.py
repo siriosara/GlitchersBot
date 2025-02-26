@@ -134,6 +134,8 @@ def handle_reaction(message):
     user_id = message.from_user.id
     post_id = message.message_id  # L'ID del post che ha ricevuto la reaction
 
+    print(f"➡️ Registrazione interazione: user_id={user_id}, post_id={post_id}, type={interaction_type}")
+    
     add_xp_for_interaction(user_id, post_id, "reacted")
 
 # 🔹 Gestione XP per visualizzazione media nel canale
@@ -145,6 +147,8 @@ def handle_media_view(message):
     user_id = message.from_user.id
     post_id = message.message_id  # L'ID del post che contiene il media
 
+    print(f"➡️ Registrazione interazione: user_id={user_id}, post_id={post_id}, type={interaction_type}")
+    
     add_xp_for_interaction(user_id, post_id, "viewed")
     
 def check_rewards_for_user(user_id):
