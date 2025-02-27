@@ -16,17 +16,16 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 OWNER_ID = int(os.getenv("OWNER_ID"))
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 CHANNEL_LINK = os.getenv("CHANNEL_LINK")  # Manca nel tuo codice precedente
-
-bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
-
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
-@app.route(f"/webhook", methods=["POST"])
+@app.route("/webhook", methods=["POST"])
 def webhook():
     """Riceve gli aggiornamenti dal Webhook."""
     json_update = request.get_json()
-    bot.process_new_updates([telebot.types.Update.de_json(json_update)])
+    if json_update:  # Controlla se i dati sono validi prima di processarli
+        bot.process_new_updates([telebot.types.Update.de_json(json_update)])
     return "OK", 200
 
 if __name__ == "__main__":
