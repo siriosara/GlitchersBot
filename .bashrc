@@ -1,0 +1,6 @@
+export TOKEN="7665636304:AAEsWwMX7QG4tVoC3IufpSjL-ZMjfspIphY"
+export OWNER_ID="5543012634"
+export CHANNEL_ID="-1001716099490"
+export CHANNEL_LINK="https://t.me/+mcc19N6Idbs1OWJk"
+export DATABASE_URL="postgresql://postgres:khnjqckSOVYzhdGPebuvMJHWoEjqoYKf@nozomi.proxy.rlwy.net:17240/railway"
+export WEBHOOK_URL="https://confident-strength.up.railway.app/webhook"

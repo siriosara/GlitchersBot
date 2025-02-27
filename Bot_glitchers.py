@@ -10,12 +10,16 @@ from datetime import datetime
 
 app = Flask(__name__)
 
+<<<<<<< HEAD
 @app.route('/webhook', methods=['POST'])
 def webhook():
     update = request.get_json()
     if update:
         bot.process_new_updates([telebot.types.Update.de_json(update)])
     return "OK", 200
+=======
+
+>>>>>>> 6c50168 (Aggiornamenti dal Termux)
     
 # 🔹 Token del bot e ID del canale
 TOKEN = os.getenv("BOT_TOKEN")
@@ -23,9 +27,27 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 OWNER_ID = int(os.getenv("OWNER_ID"))
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 CHANNEL_LINK = os.getenv("CHANNEL_LINK")  # Manca nel tuo codice precedente
+<<<<<<< HEAD
 
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
+=======
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
+
+@app.route(f"/webhook", methods=["POST"])
+def webhook():
+    """Riceve gli aggiornamenti dal Webhook."""
+    json_update = request.get_json()
+    bot.process_new_updates([telebot.types.Update.de_json(json_update)])
+    return "OK", 200
+
+if __name__ == "__main__":
+    bot.remove_webhook()
+    bot.set_webhook(url=WEBHOOK_URL)  # Imposta il Webhook
+    app.run(host="0.0.0.0", port=5000)  # Avvia il server Flask
+
+>>>>>>> 6c50168 (Aggiornamenti dal Termux)
 # 🔹 Database Connection Pool
 try:
     db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, DATABASE_URL, sslmode='require')
