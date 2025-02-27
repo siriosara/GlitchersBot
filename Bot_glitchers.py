@@ -31,7 +31,7 @@ def webhook():
 if __name__ == "__main__":
     bot.remove_webhook()
     bot.set_webhook(url=WEBHOOK_URL)  # Imposta il Webhook
-    app.run(host="0.0.0.0", port=5000)  # Avvia il server Flask
+    app.run(host="0.0.0.0", port=8080)  # Avvia il server Flask
 
 # 🔹 Database Connection Pool
 try:
