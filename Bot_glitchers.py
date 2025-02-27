@@ -9,14 +9,6 @@ from flask import Flask
 from datetime import datetime
 
 app = Flask(__name__)
-
-
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    update = request.get_json()
-    if update:
-        bot.process_new_updates([telebot.types.Update.de_json(update)])
-    return "OK", 200
     
 # 🔹 Token del bot e ID del canale
 TOKEN = os.getenv("BOT_TOKEN")
