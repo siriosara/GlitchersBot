@@ -5,10 +5,7 @@ import requests
 import telebot
 import psycopg2
 from psycopg2 import pool
-from flask import Flask
 from datetime import datetime
-
-app = Flask(__name__)
     
 # 🔹 Token del bot e ID del canale
 TOKEN = os.getenv("BOT_TOKEN")
@@ -16,22 +13,8 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 OWNER_ID = int(os.getenv("OWNER_ID"))
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 CHANNEL_LINK = os.getenv("CHANNEL_LINK")  # Manca nel tuo codice precedente
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
-
-@app.route("/webhook", methods=["POST"])
-def webhook():
-    """Riceve gli aggiornamenti dal Webhook."""
-    json_update = request.get_json()
-    if json_update:  # Controlla se i dati sono validi prima di processarli
-        bot.process_new_updates([telebot.types.Update.de_json(json_update)])
-    return "OK", 200
-
-if __name__ == "__main__":
-    bot.remove_webhook()
-    bot.set_webhook(url=WEBHOOK_URL)  # Imposta il Webhook
-    app.run(host="0.0.0.0", port=8080)  # Avvia il server Flask
 
 # 🔹 Database Connection Pool
 try:
@@ -353,5 +336,12 @@ def update_xp_periodically():
 # Avvia il thread per aggiornare gli XP ogni ora
 threading.Thread(target=update_xp_periodically, daemon=True).start()
 
+while True:
+    try:
+        bot.polling(none_stop=True, timeout=30)
+    except Exception as e:
+        print(f"Errore nel polling: {e}")
+        time.sleep(5)  # Aspetta 5 secondi prima di riprovare
+        
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
