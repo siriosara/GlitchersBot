@@ -1,6 +1,4 @@
 telebot
-flask
 psycopg2-binary
 requests
-gunicorn
 pyTelegramBotAPI
