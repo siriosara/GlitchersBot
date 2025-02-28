@@ -342,6 +342,3 @@ while True:
     except Exception as e:
         print(f"Errore nel polling: {e}")
         time.sleep(5)  # Aspetta 5 secondi prima di riprovare
-        
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
