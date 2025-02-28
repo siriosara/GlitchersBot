@@ -207,6 +207,64 @@ def user_status(message):
     bot.send_message(user_id, response, parse_mode="HTML")
     release_db(conn, cur)
     
+def force_update_xp(message):
+    """Forza l'aggiornamento manuale degli XP."""
+    conn, cur = get_db()
+
+    # Conta quante interazioni ci sono prima di aggiornare
+    cur.execute("SELECT COUNT(*) FROM interactions WHERE reacted = TRUE OR viewed = TRUE")
+    total_interactions = cur.fetchone()[0]
+
+    if total_interactions > 0:
+        # Aggiorna XP per gli utenti, ma con il limite di 10XP per post
+        cur.execute("""
+            UPDATE users
+            SET xp = xp + (
+                SELECT SUM(
+                    CASE 
+                        WHEN reacted = TRUE THEN 5 
+                        ELSE 0 
+                    END + 
+                    CASE 
+                        WHEN viewed = TRUE THEN 5 
+                        ELSE 0 
+                    END
+                )
+                FROM interactions
+                WHERE interactions.user_id = users.user_id
+                GROUP BY interactions.user_id, interactions.post_id
+            )
+            WHERE user_id IN (
+                SELECT DISTINCT user_id FROM interactions WHERE reacted = TRUE OR viewed = TRUE
+            )
+            RETURNING user_id, xp;
+        """)
+        updated_users = cur.fetchall()
+        conn.commit()
+
+        # Debug: stampa gli utenti aggiornati
+        for user in updated_users:
+            print(f"✅ XP aggiornati per user_id={user[0]}. Nuovo XP: {user[1]}")
+
+        # Rimuove solo le interazioni già conteggiate
+        cur.execute("DELETE FROM interactions WHERE reacted = TRUE OR viewed = TRUE")
+        conn.commit()
+
+        bot.reply_to(message, f"🔄 XP aggiornati con successo per {len(updated_users)} utenti!")
+        print(f"✅ {total_interactions} interazioni processate. XP aggiornati!")
+    
+    else:
+        bot.reply_to(message, "⚠️ Nessuna nuova interazione trovata. Nessun XP aggiornato.")
+        print("⚠️ Nessuna nuova interazione trovata. Nessun XP aggiornato.")
+
+    release_db(conn, cur)
+
+# Registra il comando nel bot
+@bot.message_handler(commands=['refresh'])
+def handle_refresh_command(message):
+    """Comando per aggiornare manualmente gli XP."""
+    thread = threading.Thread(target=force_update_xp, args=(message,))
+    thread.start()
 
 @bot.message_handler(commands=['ban'])
 def ban_user(message):
