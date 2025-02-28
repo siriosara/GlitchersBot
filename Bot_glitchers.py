@@ -312,27 +312,55 @@ def update_xp_periodically():
     while True:
         conn, cur = get_db()
 
-        # Recupera tutti gli utenti e aggiorna gli XP in base alle interazioni registrate
-        cur.execute("""
-            UPDATE users
-            SET xp = xp + 5
-            WHERE user_id IN (
-                SELECT user_id FROM interactions WHERE reacted = TRUE OR viewed = TRUE
-            );
-        """)
-        conn.commit()
+        # Conta quante interazioni ci sono prima di aggiornare
+        cur.execute("SELECT COUNT(*) FROM interactions WHERE reacted = TRUE OR viewed = TRUE")
+        total_interactions = cur.fetchone()[0]
 
-        # Reset delle interazioni per evitare che lo stesso post dia più XP
-        cur.execute("DELETE FROM interactions WHERE reacted = TRUE OR viewed = TRUE;")
-        conn.commit()
+        if total_interactions > 0:
+            # Aggiorna XP per gli utenti, ma con il limite di 10XP per post
+            cur.execute("""
+                UPDATE users
+                SET xp = xp + (
+                    SELECT SUM(
+                        CASE 
+                            WHEN reacted = TRUE THEN 5 
+                            ELSE 0 
+                        END + 
+                        CASE 
+                            WHEN viewed = TRUE THEN 5 
+                            ELSE 0 
+                        END
+                    )
+                    FROM interactions
+                    WHERE interactions.user_id = users.user_id
+                    GROUP BY interactions.user_id, interactions.post_id
+                )
+                WHERE user_id IN (
+                    SELECT DISTINCT user_id FROM interactions WHERE reacted = TRUE OR viewed = TRUE
+                )
+                RETURNING user_id, xp;
+            """)
+            updated_users = cur.fetchall()
+            conn.commit()
+
+            # Debug: stampa gli utenti aggiornati
+            for user in updated_users:
+                print(f"✅ XP aggiornati per user_id={user[0]}. Nuovo XP: {user[1]}")
+
+            # Rimuove solo le interazioni già conteggiate
+            cur.execute("DELETE FROM interactions WHERE reacted = TRUE OR viewed = TRUE")
+            conn.commit()
+
+            print(f"✅ {total_interactions} interazioni processate. XP aggiornati!")
+
+        else:
+            print("⚠️ Nessuna nuova interazione trovata. Nessun XP aggiornato.")
 
         release_db(conn, cur)
         
-        print("✅ XP aggiornati con successo!")
-        
-        # Attendi 3600 secondi (1 ora) prima di aggiornare di nuovo
+        # Attende 3600 secondi (1 ora) prima di aggiornare di nuovo
         time.sleep(3600)
-        
+
 # Avvia il thread per aggiornare gli XP ogni ora
 threading.Thread(target=update_xp_periodically, daemon=True).start()
 
