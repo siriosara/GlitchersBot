@@ -1,1 +1,1 @@
-web: gunicorn -b 0.0.0.0:8080 Bot_glitchers
+web: gunicorn -b 0.0.0.0:8080 Bot_glitchers:bot.polling
