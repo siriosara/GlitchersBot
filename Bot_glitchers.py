@@ -211,13 +211,30 @@ def force_update_xp(message):
     """Forza l'aggiornamento manuale degli XP."""
     conn, cur = get_db()
 
-# Debug: stampa gli utenti aggiornati
+    # Esegui la query per aggiornare gli XP
+    cur.execute("""
+        UPDATE users
+        SET xp = xp + (
+            SELECT COALESCE(SUM(
+                CASE WHEN reacted = TRUE THEN 5 ELSE 0 END +
+                CASE WHEN viewed = TRUE THEN 5 ELSE 0 END
+            ), 0)
+            FROM interactions
+            WHERE interactions.user_id = users.user_id
+        )
+        WHERE EXISTS (
+            SELECT 1 FROM interactions WHERE interactions.user_id = users.user_id
+        )
+        RETURNING user_id, xp;
+    """)
+    
+    updated_users = cur.fetchall()  # Ora la variabile esiste
+
+    if updated_users:
         for user in updated_users:
             print(f"✅ XP aggiornati per user_id={user[0]}. Nuovo XP: {user[1]}")
+        bot.reply_to(message, f"✅ XP aggiornati per {len(updated_users)} utenti!")
 
-        bot.reply_to(message, f"🔄 XP aggiornati con successo per {len(updated_users)} utenti!")
-        print(f"✅ {total_interactions} interazioni processate. XP aggiornati!")
-    
     else:
         bot.reply_to(message, "⚠️ Nessuna nuova interazione trovata. Nessun XP aggiornato.")
         print("⚠️ Nessuna nuova interazione trovata. Nessun XP aggiornato.")
