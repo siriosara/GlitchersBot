@@ -26,12 +26,15 @@ except Exception as e:
 # 🔹 Funzioni Database
 def get_db():
     conn = db_pool.getconn()
-    return conn, conn.cursor()
+    cur = conn.cursor()
+    return conn, cur
 
 def release_db(conn, cur):
-    cur.close()
-    db_pool.putconn(conn)
-
+    if cur:
+        cur.close()
+    if conn:
+        db_pool.putconn(conn)
+        
 def update_xp(user_id, xp_gained):
     conn, cur = get_db()
     cur.execute("UPDATE users SET xp = xp + %s WHERE user_id = %s RETURNING xp", (xp_gained, user_id))
@@ -125,18 +128,18 @@ def add_xp_for_interaction(user_id, post_id, interaction_type):
         update_xp(user_id, 5)  # Aggiunge 5 XP
         mark_interaction(user_id, post_id, interaction_type)
 
-@bot.channel_post_handler(func=lambda message: True)
+@bot.channel_post_handler(func=lambda message: message and message.from_user)
 def handle_reaction(message):
-    """
-    Intercetta TUTTI i messaggi nel canale e verifica se ci sono reaction.
-    """
-    if message.reply_markup:
-        user_id = message.from_user.id
-        post_id = message.message_id
-        interaction_type = "reacted"
+    if not message.from_user:  # Controllo aggiuntivo
+        print("⚠️ Messaggio senza utente, ignorato.")
+        return
+    
+    user_id = message.from_user.id
+    post_id = message.message_id
+    interaction_type = "reacted"
 
-        print(f"➡️ Registrazione interazione: user_id={user_id}, post_id={post_id}, type={interaction_type}")
-        add_xp_for_interaction(user_id, post_id, interaction_type)
+    print(f"➡️ Registrazione interazione: user_id={user_id}, post_id={post_id}, type={interaction_type}")
+    add_xp_for_interaction(user_id, post_id, interaction_type)
     
 def add_xp_for_interaction(user_id, post_id, interaction_type):
     if not user_has_interacted(user_id, post_id, interaction_type):
@@ -351,7 +354,43 @@ def leaderboard(message):
 def update_xp_periodically():
     while True:
         conn, cur = get_db()
+        try:
+            cur.execute("SELECT COUNT(*) FROM interactions WHERE reacted = TRUE OR viewed = TRUE")
+            total_interactions = cur.fetchone()[0]
 
+            if total_interactions > 0:
+                cur.execute("""
+                    UPDATE users
+                    SET xp = xp + (
+                        SELECT COALESCE(SUM(
+                            CASE WHEN reacted = TRUE THEN 5 ELSE 0 END +
+                            CASE WHEN viewed = TRUE THEN 5 ELSE 0 END
+                        ), 0)
+                        FROM interactions
+                        WHERE interactions.user_id = users.user_id
+                    )
+                    WHERE EXISTS (
+                        SELECT 1 FROM interactions WHERE interactions.user_id = users.user_id
+                    )
+                    RETURNING user_id, xp;
+                """)
+                updated_users = cur.fetchall()
+                conn.commit()
+                
+                for user in updated_users:
+                    print(f"✅ XP aggiornati per user_id={user[0]}. Nuovo XP: {user[1]}")
+
+            else:
+                print("⚠️ Nessuna nuova interazione trovata. Nessun XP aggiornato.")
+
+        except Exception as e:
+            print(f"❌ Errore nell'aggiornamento XP: {e}")
+
+        finally:
+            release_db(conn, cur)  # 🔹 Rilascia sempre la connessione
+
+        time.sleep(3600)  # Aspetta 1 ora prima del prossimo aggiornamento
+        
 # Avvia il thread per aggiornare gli XP ogni ora
 threading.Thread(target=update_xp_periodically, daemon=True).start()
 
