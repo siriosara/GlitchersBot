@@ -125,18 +125,18 @@ def add_xp_for_interaction(user_id, post_id, interaction_type):
         update_xp(user_id, 5)  # Aggiunge 5 XP
         mark_interaction(user_id, post_id, interaction_type)
 
-@bot.channel_post_handler(func=lambda message: message.reply_markup is not None)
+@bot.channel_post_handler(func=lambda message: True)
 def handle_reaction(message):
     """
-    Assegna XP quando un utente mette una reaction a un post.
+    Intercetta TUTTI i messaggi nel canale e verifica se ci sono reaction.
     """
-    user_id = message.from_user.id
-    post_id = message.message_id  # L'ID del post che ha ricevuto la reaction
-    interaction_type = "reacted"  # Definisco esplicitamente il tipo di interazione
+    if message.reply_markup:
+        user_id = message.from_user.id
+        post_id = message.message_id
+        interaction_type = "reacted"
 
-    print(f"➡️ Registrazione interazione: user_id={user_id}, post_id={post_id}, type={interaction_type}")
-
-    add_xp_for_interaction(user_id, post_id, interaction_type)
+        print(f"➡️ Registrazione interazione: user_id={user_id}, post_id={post_id}, type={interaction_type}")
+        add_xp_for_interaction(user_id, post_id, interaction_type)
     
 def add_xp_for_interaction(user_id, post_id, interaction_type):
     if not user_has_interacted(user_id, post_id, interaction_type):
@@ -377,27 +377,21 @@ def update_xp_periodically():
         if total_interactions > 0:
             # Aggiorna XP per gli utenti, ma con il limite di 10XP per post
             cur.execute("""
-                UPDATE users
-                SET xp = xp + (
-                    SELECT SUM(
-                        CASE 
-                            WHEN reacted = TRUE THEN 5 
-                            ELSE 0 
-                        END + 
-                        CASE 
-                            WHEN viewed = TRUE THEN 5 
-                            ELSE 0 
-                        END
-                    )
-                    FROM interactions
-                    WHERE interactions.user_id = users.user_id
-                    GROUP BY interactions.user_id, interactions.post_id
-                )
-                WHERE user_id IN (
-                    SELECT DISTINCT user_id FROM interactions WHERE reacted = TRUE OR viewed = TRUE
-                )
-                RETURNING user_id, xp;
-            """)
+UPDATE users
+SET xp = xp + (
+    SELECT COALESCE(SUM(
+        CASE WHEN reacted = TRUE THEN 5 ELSE 0 END +
+        CASE WHEN viewed = TRUE THEN 5 ELSE 0 END
+    ), 0)
+    FROM interactions
+    WHERE interactions.user_id = users.user_id
+    GROUP BY interactions.user_id
+)
+WHERE EXISTS (
+    SELECT 1 FROM interactions WHERE interactions.user_id = users.user_id
+)
+RETURNING user_id, xp;
+
             updated_users = cur.fetchall()
             conn.commit()
 
