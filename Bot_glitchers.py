@@ -359,25 +359,6 @@ total_interactions = cur.fetchone()[0]
 if total_interactions > 0:
 # Aggiorna XP per gli utenti, ma con il limite di 10XP per post
 
-cur.execute("""
-    UPDATE users
-    SET xp = xp + (
-        SELECT COALESCE(SUM(
-            CASE WHEN reacted = TRUE THEN 5 ELSE 0 END +
-            CASE WHEN viewed = TRUE THEN 5 ELSE 0 END
-        ), 0)
-        FROM interactions
-        WHERE interactions.user_id = users.user_id
-    )
-    WHERE EXISTS (
-        SELECT 1 FROM interactions WHERE interactions.user_id = users.user_id
-    )
-    RETURNING user_id, xp;
-""")
-
-updated_users = cur.fetchall()
-conn.commit()
-
 # Debug: stampa gli utenti aggiornati
 for user in updated_users:
  print(f"✅ XP aggiornati per user_id={user[0]}. Nuovo XP: {user[1]}")
