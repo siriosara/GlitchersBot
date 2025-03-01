@@ -361,16 +361,9 @@ total_interactions = cur.fetchone()[0]
 # Rimuove solo le interazioni già conteggiate
 cur.execute("DELETE FROM interactions WHERE reacted = TRUE OR viewed = TRUE")
 conn.commit()
-
-            print(f"✅ {total_interactions} interazioni processate. XP aggiornati!")
-
-        else:
-            print("⚠️ Nessuna nuova interazione trovata. Nessun XP aggiornato.")
-
-        release_db(conn, cur)
-        
-        # Attende 3600 secondi (1 ora) prima di aggiornare di nuovo
-        time.sleep(3600)
+ 
+# Attende 3600 secondi (1 ora) prima di aggiornare di nuovo
+time.sleep(3600)
 
 # Avvia il thread per aggiornare gli XP ogni ora
 threading.Thread(target=update_xp_periodically, daemon=True).start()
