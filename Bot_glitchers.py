@@ -211,44 +211,9 @@ def force_update_xp(message):
     """Forza l'aggiornamento manuale degli XP."""
     conn, cur = get_db()
 
-    # Conta quante interazioni ci sono prima di aggiornare
-    cur.execute("SELECT COUNT(*) FROM interactions WHERE reacted = TRUE OR viewed = TRUE")
-    total_interactions = cur.fetchone()[0]
-
-    if total_interactions > 0:
-        # Aggiorna XP per gli utenti, ma con il limite di 10XP per post
-        cur.execute("""
-            UPDATE users
-            SET xp = xp + (
-                SELECT SUM(
-                    CASE 
-                        WHEN reacted = TRUE THEN 5 
-                        ELSE 0 
-                    END + 
-                    CASE 
-                        WHEN viewed = TRUE THEN 5 
-                        ELSE 0 
-                    END
-                )
-                FROM interactions
-                WHERE interactions.user_id = users.user_id
-                GROUP BY interactions.user_id, interactions.post_id
-            )
-            WHERE user_id IN (
-                SELECT DISTINCT user_id FROM interactions WHERE reacted = TRUE OR viewed = TRUE
-            )
-            RETURNING user_id, xp;
-        """)
-        updated_users = cur.fetchall()
-        conn.commit()
-
-        # Debug: stampa gli utenti aggiornati
+# Debug: stampa gli utenti aggiornati
         for user in updated_users:
             print(f"✅ XP aggiornati per user_id={user[0]}. Nuovo XP: {user[1]}")
-
-        # Rimuove solo le interazioni già conteggiate
-        cur.execute("DELETE FROM interactions WHERE reacted = TRUE OR viewed = TRUE")
-        conn.commit()
 
         bot.reply_to(message, f"🔄 XP aggiornati con successo per {len(updated_users)} utenti!")
         print(f"✅ {total_interactions} interazioni processate. XP aggiornati!")
@@ -370,38 +335,39 @@ def update_xp_periodically():
     while True:
         conn, cur = get_db()
 
-        # Conta quante interazioni ci sono prima di aggiornare
-        cur.execute("SELECT COUNT(*) FROM interactions WHERE reacted = TRUE OR viewed = TRUE")
-        total_interactions = cur.fetchone()[0]
+# Conta quante interazioni ci sono prima di aggiornare
+cur.execute("SELECT COUNT(*) FROM interactions WHERE reacted = TRUE OR viewed = TRUE")
+total_interactions = cur.fetchone()[0]
 
-        if total_interactions > 0:
-            # Aggiorna XP per gli utenti, ma con il limite di 10XP per post
-            cur.execute("""
-UPDATE users
-SET xp = xp + (
-    SELECT COALESCE(SUM(
-        CASE WHEN reacted = TRUE THEN 5 ELSE 0 END +
-        CASE WHEN viewed = TRUE THEN 5 ELSE 0 END
-    ), 0)
-    FROM interactions
-    WHERE interactions.user_id = users.user_id
-    GROUP BY interactions.user_id
-)
-WHERE EXISTS (
-    SELECT 1 FROM interactions WHERE interactions.user_id = users.user_id
-)
-RETURNING user_id, xp;
+if total_interactions > 0:
+# Aggiorna XP per gli utenti, ma con il limite di 10XP per post
 
-            updated_users = cur.fetchall()
-            conn.commit()
+cur.execute("""
+    UPDATE users
+    SET xp = xp + (
+        SELECT COALESCE(SUM(
+            CASE WHEN reacted = TRUE THEN 5 ELSE 0 END +
+            CASE WHEN viewed = TRUE THEN 5 ELSE 0 END
+        ), 0)
+        FROM interactions
+        WHERE interactions.user_id = users.user_id
+    )
+    WHERE EXISTS (
+        SELECT 1 FROM interactions WHERE interactions.user_id = users.user_id
+    )
+    RETURNING user_id, xp;
+""")
 
-            # Debug: stampa gli utenti aggiornati
-            for user in updated_users:
-                print(f"✅ XP aggiornati per user_id={user[0]}. Nuovo XP: {user[1]}")
+updated_users = cur.fetchall()
+conn.commit()
 
-            # Rimuove solo le interazioni già conteggiate
-            cur.execute("DELETE FROM interactions WHERE reacted = TRUE OR viewed = TRUE")
-            conn.commit()
+# Debug: stampa gli utenti aggiornati
+for user in updated_users:
+ print(f"✅ XP aggiornati per user_id={user[0]}. Nuovo XP: {user[1]}")
+ 
+# Rimuove solo le interazioni già conteggiate
+cur.execute("DELETE FROM interactions WHERE reacted = TRUE OR viewed = TRUE")
+conn.commit()
 
             print(f"✅ {total_interactions} interazioni processate. XP aggiornati!")
 
@@ -421,4 +387,5 @@ while True:
         bot.polling(none_stop=True, timeout=30)
     except Exception as e:
         print(f"Errore nel polling: {e}")
+        db_pool = psycopg2.pool.SimpleConnectionPool(1, 5, DATABASE_URL, sslmode='require')  # Riconnetti il DB
         time.sleep(5)  # Aspetta 5 secondi prima di riprovare
