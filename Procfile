@@ -1,1 +1,1 @@
-web: python Bot_glitchers.py
+worker: python Bot_glitchers.py
