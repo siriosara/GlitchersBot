@@ -356,12 +356,7 @@ def update_xp_periodically():
 cur.execute("SELECT COUNT(*) FROM interactions WHERE reacted = TRUE OR viewed = TRUE")
 total_interactions = cur.fetchone()[0]
 
-if total_interactions > 0:
-# Aggiorna XP per gli utenti, ma con il limite di 10XP per post
-
-# Debug: stampa gli utenti aggiornati
-for user in updated_users:
- print(f"✅ XP aggiornati per user_id={user[0]}. Nuovo XP: {user[1]}")
+(f"✅ XP aggiornati per user_id={user[0]}. Nuovo XP: {user[1]}")
  
 # Rimuove solo le interazioni già conteggiate
 cur.execute("DELETE FROM interactions WHERE reacted = TRUE OR viewed = TRUE")
