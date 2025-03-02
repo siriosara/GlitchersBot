@@ -6,7 +6,6 @@ import telebot
 import psycopg2
 from psycopg2 import pool
 from datetime import datetime
-from Bot_glitchers import bot
 
 # 🔹 Token del bot e ID del canale
 TOKEN = os.getenv("BOT_TOKEN")
