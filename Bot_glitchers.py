@@ -50,6 +50,19 @@ def update_xp(user_id, xp_gained):
         print(f"❌ Errore aggiornando XP: {e}")
     finally:
         release_db(conn, cur)
+
+def fetch_interactions():
+    conn, cur = get_db()
+    try:
+        cur.execute("SELECT * FROM interactions WHERE processed = FALSE")
+        interactions = cur.fetchall()
+        print(f"🔍 Numero di interazioni trovate: {len(interactions)}")  # 👈 Aggiunto qui
+        return interactions
+    except Exception as e:
+        print(f"❌ Errore nel recupero delle interazioni: {e}")
+        return []
+    finally:
+        release_db(conn, cur)
         
 # 🔹 File ID dei Premi XP
 video_premi = {
