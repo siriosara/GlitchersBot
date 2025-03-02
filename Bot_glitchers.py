@@ -6,7 +6,8 @@ import telebot
 import psycopg2
 from psycopg2 import pool
 from datetime import datetime
-    
+from Bot_glitchers import bot
+
 # 🔹 Token del bot e ID del canale
 TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -15,6 +16,9 @@ CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 CHANNEL_LINK = os.getenv("CHANNEL_LINK")  # Manca nel tuo codice precedente
 
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
+
+if __name__ == "__main__":
+    bot.polling(none_stop=True, timeout=30)
 
 # 🔹 Database Connection Pool
 try:
