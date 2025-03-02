@@ -26,9 +26,10 @@ except Exception as e:
 # 🔹 Funzioni Database
 def get_db():
     conn = db_pool.getconn()
-    cur = conn.cursor()
-    return conn, cur
-
+    if conn is None:
+        raise RuntimeError("Nessuna connessione disponibile nel pool!")
+    return conn, conn.cursor()
+    
 def release_db(conn, cur):
     if cur:
         cur.close()
@@ -40,6 +41,7 @@ def update_xp(user_id, xp_gained):
     cur.execute("UPDATE users SET xp = xp + %s WHERE user_id = %s RETURNING xp", (xp_gained, user_id))
     new_xp = cur.fetchone()
     conn.commit()
+    
     release_db(conn, cur)
 
     if new_xp:
@@ -118,6 +120,7 @@ def mark_interaction(user_id, post_id, interaction_type):
         ON CONFLICT (user_id, post_id) DO UPDATE SET {interaction_type} = TRUE
     """, (user_id, post_id))
     conn.commit()
+    
     release_db(conn, cur)
     
 def add_xp_for_interaction(user_id, post_id, interaction_type):
