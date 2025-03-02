@@ -17,9 +17,6 @@ CHANNEL_LINK = os.getenv("CHANNEL_LINK")  # Manca nel tuo codice precedente
 
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
-if __name__ == "__main__":
-    bot.polling(none_stop=True, timeout=30)
-
 # 🔹 Database Connection Pool
 try:
     db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, DATABASE_URL, sslmode='require')
