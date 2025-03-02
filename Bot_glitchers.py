@@ -38,19 +38,19 @@ def release_db(conn, cur):
         
 def update_xp(user_id, xp_gained):
     conn, cur = get_db()
-    cur.execute("UPDATE users SET xp = xp + %s WHERE user_id = %s RETURNING xp", (xp_gained, user_id))
-    new_xp = cur.fetchone()
-    conn.commit()
-    
-    release_db(conn, cur)
-
-    if new_xp:
-        print(f"✅ XP aggiornati per user_id={user_id}. Nuovo XP: {new_xp[0]}")
-    else:
-        print(f"⚠️ Nessun XP aggiornato per user_id={user_id}")
-    
-    check_rewards_for_user(user_id)
-    
+    try:
+        cur.execute("UPDATE users SET xp = xp + %s WHERE user_id = %s RETURNING xp", (xp_gained, user_id))
+        new_xp = cur.fetchone()
+        conn.commit()
+        if new_xp:
+            print(f"✅ XP aggiornati per user_id={user_id}. Nuovo XP: {new_xp[0]}")
+        else:
+            print(f"⚠️ Nessun XP aggiornato per user_id={user_id}")
+    except Exception as e:
+        print(f"❌ Errore aggiornando XP: {e}")
+    finally:
+        release_db(conn, cur)
+        
 # 🔹 File ID dei Premi XP
 video_premi = {
     250: "BAACAgQAAxkBAANRZ65g5avV2vGeKWB2sB7rYpL-z3QAAhYVAAK4hXFRQOWBHIJF29E2BA",
@@ -112,17 +112,21 @@ def user_has_interacted(user_id, post_id, interaction_type):
     return result and result[0]  # Se esiste e il valore è True, restituisce True
 
 def mark_interaction(user_id, post_id, interaction_type):
-    print(f"🔍 Registrando interazione: {interaction_type} per user_id {user_id} su post_id {post_id}")  # DEBUG
+    print(f"🔍 Registrando interazione: {interaction_type} per user_id={user_id} su post_id={post_id}")  # DEBUG
     conn, cur = get_db()
-    cur.execute(f"""
-        INSERT INTO interactions (user_id, post_id, {interaction_type}) 
-        VALUES (%s, %s, TRUE)
-        ON CONFLICT (user_id, post_id) DO UPDATE SET {interaction_type} = TRUE
-    """, (user_id, post_id))
-    conn.commit()
-    
-    release_db(conn, cur)
-    
+    try:
+        cur.execute(f"""
+            INSERT INTO interactions (user_id, post_id, {interaction_type}) 
+            VALUES (%s, %s, TRUE)
+            ON CONFLICT (user_id, post_id) DO UPDATE SET {interaction_type} = TRUE
+        """, (user_id, post_id))
+        conn.commit()
+        print(f"✅ Interazione salvata nel DB per user_id={user_id}, post_id={post_id}, tipo={interaction_type}")  # DEBUG
+    except Exception as e:
+        print(f"❌ Errore registrando l'interazione nel DB: {e}")
+    finally:
+        release_db(conn, cur)
+
 def add_xp_for_interaction(user_id, post_id, interaction_type):
     """
     Aggiunge XP solo se l'utente non ha già interagito con il post.
