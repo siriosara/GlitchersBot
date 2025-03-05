@@ -114,10 +114,6 @@ def webhook():
     bot.process_new_updates([update])
     return "!", 200
 
-if __name__ == "__main__":
-PORT = int(os.environ.get("PORT", 5000))
-app.run(host="0.0.0.0", port=PORT)
-    
 # 🔹 File ID dei Premi XP
 video_premi = {
     250: "BAACAgQAAxkBAANRZ65g5avV2vGeKWB2sB7rYpL-z3QAAhYVAAK4hXFRQOWBHIJF29E2BA",
@@ -489,10 +485,6 @@ def update_xp_periodically():
 # Avvia il thread per aggiornare gli XP ogni ora
 threading.Thread(target=update_xp_periodically, daemon=True).start()
 
-while True:
-    try:
-        bot.polling(none_stop=True, timeout=30)
-    except Exception as e:
-        print(f"Errore nel polling: {e}")
-        db_pool = psycopg2.pool.SimpleConnectionPool(1, 5, DATABASE_URL, sslmode='require')  # Riconnetti il DB
-        time.sleep(5)  # Aspetta 5 secondi prima di riprovare
+if __name__ == "__main__":
+    PORT = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=PORT)
