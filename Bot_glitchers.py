@@ -115,7 +115,8 @@ def webhook():
     return "!", 200
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+PORT = int(os.environ.get("PORT", 5000))
+app.run(host="0.0.0.0", port=PORT)
     
 # 🔹 File ID dei Premi XP
 video_premi = {
