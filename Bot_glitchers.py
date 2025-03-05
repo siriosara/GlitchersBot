@@ -140,22 +140,33 @@ def user_has_interacted(user_id, post_id, interaction_type):
 def mark_interaction(user_id, post_id, interaction_type):
     print(f"🔍 Registrando interazione: {interaction_type} per user_id={user_id} su post_id={post_id}")
     conn, cur = get_db()
+    
     try:
+        # Controlla se l'interazione esiste già
         cur.execute("SELECT * FROM interactions WHERE user_id = %s AND post_id = %s", (user_id, post_id))
         existing = cur.fetchone()
         print(f"🔍 Esiste già un'interazione? {existing}")  # Debug
 
-        cur.execute(f"""
+        # Inserisce o aggiorna l'interazione
+        query = f"""
             INSERT INTO interactions (user_id, post_id, {interaction_type}) 
             VALUES (%s, %s, TRUE)
-            ON CONFLICT (user_id, post_id) DO UPDATE SET {interaction_type} = TRUE
-        """, (user_id, post_id))
+            ON CONFLICT (user_id, post_id) DO UPDATE SET {interaction_type} = EXCLUDED.{interaction_type}
+        """
+        cur.execute(query, (user_id, post_id))
         conn.commit()
-        print(f"✅ Interazione salvata per user_id={user_id}, post_id={post_id}")
+        
+        print(f"✅ Interazione salvata per user_id={user_id}, post_id={post_id}, tipo={interaction_type}")
+        
+        # Debug Telegram
+        bot.send_message(OWNER_ID, f"✅ Interazione salvata: {user_id} su {post_id}, tipo {interaction_type}")
+
     except Exception as e:
         print(f"❌ Errore registrando interazione: {e}")
+        bot.send_message(OWNER_ID, f"❌ Errore salvando interazione: {e}")
     finally:
         release_db(conn, cur)
+        
         
 def add_xp_for_interaction(user_id, post_id, interaction_type):
     """
