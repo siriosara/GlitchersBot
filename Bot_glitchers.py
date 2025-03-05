@@ -17,9 +17,6 @@ URL = os.getenv("URL")
 
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
-# Avvia il polling delle reaction in un thread separato
-threading.Thread(target=fetch_reactions, daemon=True).start()
-
 # Avvia il polling normale del bot
 while True:
     try:
@@ -105,7 +102,10 @@ def fetch_reactions():
             print(f"❌ Errore nel polling delle reaction: {e}")
 
         time.sleep(5)  # Controlla ogni 5 secondi
-        
+
+# Avvia il polling delle reaction in un thread separato dopo aver definito la funzione
+threading.Thread(target=fetch_reactions, daemon=True).start()
+
 # 🔹 File ID dei Premi XP
 video_premi = {
     250: "BAACAgQAAxkBAANRZ65g5avV2vGeKWB2sB7rYpL-z3QAAhYVAAK4hXFRQOWBHIJF29E2BA",
