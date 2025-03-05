@@ -13,6 +13,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 OWNER_ID = int(os.getenv("OWNER_ID"))
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 CHANNEL_LINK = os.getenv("CHANNEL_LINK")  # Manca nel tuo codice precedente
+URL = os.getenv("URL")
 
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
@@ -64,18 +65,35 @@ def update_xp(user_id, xp_gained):
     finally:
         release_db(conn, cur)
 
-def fetch_interactions():
-    conn, cur = get_db()
-    try:
-        cur.execute("SELECT * FROM interactions WHERE processed = FALSE")
-        interactions = cur.fetchall()
-        print(f"🔍 Numero di interazioni trovate: {len(interactions)}")  # 👈 Aggiunto qui
-        return interactions
-    except Exception as e:
-        print(f"❌ Errore nel recupero delle interazioni: {e}")
-        return []
-    finally:
-        release_db(conn, cur)
+def fetch_reactions():
+    last_update_id = None
+    
+    while True:
+        try:
+            params = {"offset": last_update_id, "timeout": 30}
+            response = requests.get(URL, params=params).json()
+            
+            if response.get("ok"):
+                for update in response["result"]:
+                    last_update_id = update["update_id"] + 1
+                    
+                    # Controlliamo se il messaggio contiene una reaction
+                    if "message" in update:
+                        message = update["message"]
+                        if "reaction" in message:
+                            user_id = message["from"]["id"]
+                            post_id = message["message_id"]
+                            print(f"✅ Reaction registrata per user {user_id} su post {post_id}")
+                            
+                            bot.send_message(OWNER_ID, f"🔍 Reaction registrata: user_id={user_id}, post_id={post_id}")
+                            
+                            # Salviamo l'interazione nel database
+                            add_xp_for_interaction(user_id, post_id, "reacted")
+
+        except Exception as e:
+            print(f"❌ Errore nel polling delle reaction: {e}")
+
+        time.sleep(5)  # Controlla ogni 5 secondi
         
 # 🔹 File ID dei Premi XP
 video_premi = {
