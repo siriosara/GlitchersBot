@@ -17,14 +17,6 @@ URL = os.getenv("URL")
 
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
-# Avvia il polling normale del bot
-while True:
-    try:
-        bot.polling(none_stop=True, timeout=30)
-    except Exception as e:
-        print(f"Errore nel polling: {e}")
-        time.sleep(5)  # Riprova dopo 5 secondi
-
 # 🔹 Database Connection Pool
 try:
     db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, DATABASE_URL, sslmode='require')
@@ -73,6 +65,7 @@ def update_xp(user_id, xp_gained):
     finally:
         release_db(conn, cur)
 
+# 🔹 Definizione della funzione fetch_reactions()
 def fetch_reactions():
     last_update_id = None
     
@@ -103,9 +96,17 @@ def fetch_reactions():
 
         time.sleep(5)  # Controlla ogni 5 secondi
 
-# Avvia il polling delle reaction in un thread separato dopo aver definito la funzione
+# 🔹 Avvia il thread SOLO DOPO la definizione della funzione
 threading.Thread(target=fetch_reactions, daemon=True).start()
 
+# 🔹 Avvia il bot normalmente
+while True:
+    try:
+        bot.polling(none_stop=True, timeout=30)
+    except Exception as e:
+        print(f"Errore nel polling: {e}")
+        time.sleep(5)
+        
 # 🔹 File ID dei Premi XP
 video_premi = {
     250: "BAACAgQAAxkBAANRZ65g5avV2vGeKWB2sB7rYpL-z3QAAhYVAAK4hXFRQOWBHIJF29E2BA",
