@@ -17,6 +17,17 @@ URL = os.getenv("URL")
 
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
+# Avvia il polling delle reaction in un thread separato
+threading.Thread(target=fetch_reactions, daemon=True).start()
+
+# Avvia il polling normale del bot
+while True:
+    try:
+        bot.polling(none_stop=True, timeout=30)
+    except Exception as e:
+        print(f"Errore nel polling: {e}")
+        time.sleep(5)  # Riprova dopo 5 secondi
+
 # 🔹 Database Connection Pool
 try:
     db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, DATABASE_URL, sslmode='require')
