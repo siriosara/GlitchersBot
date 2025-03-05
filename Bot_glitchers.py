@@ -25,6 +25,8 @@ except Exception as e:
 
 # 🔹 Funzioni Database
 def get_db():
+    global db_pool  # Dichiarazione globale per poterlo modificare
+    
     try:
         conn = db_pool.getconn()
         if conn.closed:
@@ -32,12 +34,14 @@ def get_db():
         return conn, conn.cursor()
     except Exception as e:
         print(f"❌ Errore nella connessione al database: {e}")
+        
+        # Chiude tutte le connessioni e ricrea il pool
         db_pool.closeall()
-        global db_pool
         db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, DATABASE_URL, sslmode='require')
-        return get_db()  # Riprova
-    
-def release_db(conn, cur):
+        
+        return get_db()  # Riprova con il nuovo pool
+        
+    def release_db(conn, cur):
     if cur:
         cur.close()
     if conn:
