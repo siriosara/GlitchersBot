@@ -42,8 +42,9 @@ def get_db():
         
         return get_db()  # Riprova con il nuovo pool
         
-    def release_db(conn, cur):
-    if cur:
+def release_db(conn, cur):
+    """Rilascia la connessione e il cursore nel pool."""
+    if cur:  
         cur.close()
     if conn:
         db_pool.putconn(conn)
