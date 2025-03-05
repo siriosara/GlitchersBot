@@ -167,15 +167,19 @@ def add_xp_for_interaction(user_id, post_id, interaction_type):
 
 @bot.channel_post_handler(func=lambda message: message and message.from_user)
 def handle_reaction(message):
-    if not message.from_user:  # Controllo aggiuntivo
+    if not message.from_user:
         print("⚠️ Messaggio senza utente, ignorato.")
         return
-    
+
     user_id = message.from_user.id
     post_id = message.message_id
     interaction_type = "reacted"
 
-    print(f"➡️ Registrazione interazione: user_id={user_id}, post_id={post_id}, type={interaction_type}")
+    print(f"✅ Ricevuto evento reaction da user_id={user_id} su post_id={post_id}")
+    
+    # Debug: Controlla se il bot riceve eventi
+    bot.send_message(OWNER_ID, f"🔍 Debug: {user_id} ha messo una reaction su {post_id}")
+
     add_xp_for_interaction(user_id, post_id, interaction_type)
     
 def add_xp_for_interaction(user_id, post_id, interaction_type):
