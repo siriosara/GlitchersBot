@@ -25,10 +25,17 @@ except Exception as e:
 
 # 🔹 Funzioni Database
 def get_db():
-    conn = db_pool.getconn()
-    if conn is None:
-        raise RuntimeError("Nessuna connessione disponibile nel pool!")
-    return conn, conn.cursor()
+    try:
+        conn = db_pool.getconn()
+        if conn.closed:
+            raise RuntimeError("Connessione chiusa, ricreazione necessaria.")
+        return conn, conn.cursor()
+    except Exception as e:
+        print(f"❌ Errore nella connessione al database: {e}")
+        db_pool.closeall()
+        global db_pool
+        db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, DATABASE_URL, sslmode='require')
+        return get_db()  # Riprova
     
 def release_db(conn, cur):
     if cur:
