@@ -1,1 +1,1 @@
-worker: python Bot_glitchers.py
+web: gunicorn -b 0.0.0.0:$PORT Bot_glitchers:app
