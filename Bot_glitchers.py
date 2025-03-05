@@ -132,21 +132,25 @@ def user_has_interacted(user_id, post_id, interaction_type):
     return result and result[0]  # Se esiste e il valore è True, restituisce True
 
 def mark_interaction(user_id, post_id, interaction_type):
-    print(f"🔍 Registrando interazione: {interaction_type} per user_id={user_id} su post_id={post_id}")  # DEBUG
+    print(f"🔍 Registrando interazione: {interaction_type} per user_id={user_id} su post_id={post_id}")
     conn, cur = get_db()
     try:
+        cur.execute("SELECT * FROM interactions WHERE user_id = %s AND post_id = %s", (user_id, post_id))
+        existing = cur.fetchone()
+        print(f"🔍 Esiste già un'interazione? {existing}")  # Debug
+
         cur.execute(f"""
             INSERT INTO interactions (user_id, post_id, {interaction_type}) 
             VALUES (%s, %s, TRUE)
             ON CONFLICT (user_id, post_id) DO UPDATE SET {interaction_type} = TRUE
         """, (user_id, post_id))
         conn.commit()
-        print(f"✅ Interazione salvata nel DB per user_id={user_id}, post_id={post_id}, tipo={interaction_type}")  # DEBUG
+        print(f"✅ Interazione salvata per user_id={user_id}, post_id={post_id}")
     except Exception as e:
-        print(f"❌ Errore registrando l'interazione nel DB: {e}")
+        print(f"❌ Errore registrando interazione: {e}")
     finally:
         release_db(conn, cur)
-
+        
 def add_xp_for_interaction(user_id, post_id, interaction_type):
     """
     Aggiunge XP solo se l'utente non ha già interagito con il post.
