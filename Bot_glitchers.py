@@ -176,23 +176,25 @@ def add_xp_for_interaction(user_id, post_id, interaction_type):
         update_xp(user_id, 5)  # Aggiunge 5 XP
         mark_interaction(user_id, post_id, interaction_type)
 
-@bot.channel_post_handler(func=lambda message: message and message.from_user)
+@bot.channel_post_handler(func=lambda message: True)
 def handle_reaction(message):
-    if not message.from_user:
-        print("⚠️ Messaggio senza utente, ignorato.")
+    print(f"🔍 Evento ricevuto: {message}")
+    
+    if not message or not message.from_user:
+        print("⚠️ Nessun utente associato al messaggio, ignorato.")
         return
 
     user_id = message.from_user.id
     post_id = message.message_id
     interaction_type = "reacted"
 
-    print(f"✅ Ricevuto evento reaction da user_id={user_id} su post_id={post_id}")
+    print(f"✅ Ricevuta reaction da user_id={user_id} su post_id={post_id}")
     
-    # Debug: Controlla se il bot riceve eventi
-    bot.send_message(OWNER_ID, f"🔍 Debug: {user_id} ha messo una reaction su {post_id}")
+    # Debug per verificare se il bot riceve correttamente le reazioni
+    bot.send_message(OWNER_ID, f"🔍 Debug: Reaction registrata - user_id={user_id}, post_id={post_id}")
 
     add_xp_for_interaction(user_id, post_id, interaction_type)
-    
+
 def add_xp_for_interaction(user_id, post_id, interaction_type):
     if not user_has_interacted(user_id, post_id, interaction_type):
         print(f"✅ Aggiungendo XP per {interaction_type} su post {post_id} dell'utente {user_id}")  # DEBUG
