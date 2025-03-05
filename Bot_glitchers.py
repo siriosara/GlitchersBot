@@ -14,6 +14,7 @@ OWNER_ID = int(os.getenv("OWNER_ID"))
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 CHANNEL_LINK = os.getenv("CHANNEL_LINK")  # Manca nel tuo codice precedente
 URL = os.getenv("URL")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
@@ -99,14 +100,23 @@ def fetch_reactions():
 # 🔹 Avvia il thread SOLO DOPO la definizione della funzione
 threading.Thread(target=fetch_reactions, daemon=True).start()
 
-# 🔹 Avvia il bot normalmente
-while True:
-    try:
-        bot.polling(none_stop=True, timeout=30)
-    except Exception as e:
-        print(f"Errore nel polling: {e}")
-        time.sleep(5)
-        
+bot.remove_webhook()
+time.sleep(1)
+bot.set_webhook(url=WEBHOOK_URL)
+
+from flask import Flask, request
+
+app = Flask(__name__)
+
+@app.route("/", methods=["POST"])
+def webhook():
+    update = telebot.types.Update.de_json(request.stream.read().decode("utf-8"))
+    bot.process_new_updates([update])
+    return "!", 200
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
+    
 # 🔹 File ID dei Premi XP
 video_premi = {
     250: "BAACAgQAAxkBAANRZ65g5avV2vGeKWB2sB7rYpL-z3QAAhYVAAK4hXFRQOWBHIJF29E2BA",
