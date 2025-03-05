@@ -482,9 +482,3 @@ def update_xp_periodically():
 
         time.sleep(3600)  # Aspetta 1 ora prima del prossimo aggiornamento
         
-# Avvia il thread per aggiornare gli XP ogni ora
-threading.Thread(target=update_xp_periodically, daemon=True).start()
-
-if __name__ == "__main__":
-    PORT = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=PORT)
