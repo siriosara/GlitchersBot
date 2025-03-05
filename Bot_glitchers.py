@@ -25,16 +25,17 @@ except Exception as e:
 
 # 🔹 Funzioni Database
 def get_db():
-    global db_pool  # Dichiarazione globale per poterlo modificare
-    
+    global db_pool  # Dichiarazione globale per modificare db_pool
+
     try:
         conn = db_pool.getconn()
         if conn.closed:
             raise RuntimeError("Connessione chiusa, ricreazione necessaria.")
         return conn, conn.cursor()
+    
     except Exception as e:
         print(f"❌ Errore nella connessione al database: {e}")
-        
+
         # Chiude tutte le connessioni e ricrea il pool
         db_pool.closeall()
         db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, DATABASE_URL, sslmode='require')
