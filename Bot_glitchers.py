@@ -493,3 +493,7 @@ def update_xp_periodically():
 
         time.sleep(3600)  # Aspetta 1 ora prima del prossimo aggiornamento
         
+if __name__ == "__main__":
+    print("🚀 Bot in esecuzione...")
+    bot.infinity_polling(skip_pending=True)
+    
