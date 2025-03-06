@@ -1,7 +1,6 @@
 import os
 import time
 import threading
-import requests
 import telebot
 import psycopg2
 from psycopg2 import pool
