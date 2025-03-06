@@ -106,31 +106,20 @@ def fetch_reactions():
 # 🔹 Avvia il thread SOLO DOPO la definizione della funzione
 threading.Thread(target=fetch_reactions, daemon=True).start()
 
-# 🔹 Controlla lo stato attuale del webhook PRIMA di rimuoverlo
-webhook_info = requests.get(f"https://api.telegram.org/bot{TOKEN}/getWebhookInfo").json()
-current_webhook = webhook_info.get("result", {}).get("url")
+# 🔹 Controlla se il webhook è già attivo PRIMA di modificarlo
+try:
+    webhook_info = requests.get(f"https://api.telegram.org/bot{TOKEN}/getWebhookInfo").json()
+    current_webhook = webhook_info.get("result", {}).get("url")
 
-if current_webhook == WEBHOOK_URL:
-    print("✅ Webhook già attivo, nessuna modifica necessaria.")
-else:
-    print("🔄 Reimposto il webhook...")
-    bot.remove_webhook()
-    time.sleep(5)
-    bot.set_webhook(url=WEBHOOK_URL)
-    
-# Imposta un delay tra le richieste per evitare il 429
-bot = telebot.TeleBot(TOKEN, parse_mode="HTML", disable_notification=True, threaded=False)
-bot.enable_save_next_step_handlers(delay=0.5)  # Aspetta 0.5s tra le richieste
-
-# Controlla lo stato attuale del webhook
-webhook_info = requests.get(f"https://api.telegram.org/bot{TOKEN}/getWebhookInfo").json()
-if webhook_info.get("result", {}).get("url") == WEBHOOK_URL:
-    print("✅ Webhook già attivo, nessuna modifica necessaria.")
-else:
-    print("🔄 Reimposto il webhook...")
-    bot.remove_webhook()
-    time.sleep(5)
-    bot.set_webhook(url=WEBHOOK_URL)
+    if current_webhook == WEBHOOK_URL:
+        print("✅ Webhook già attivo, nessuna modifica necessaria.")
+    else:
+        print("🔄 Reimposto il webhook...")
+        bot.remove_webhook()
+        time.sleep(5)
+        bot.set_webhook(url=WEBHOOK_URL)
+except Exception as e:
+    print(f"❌ Errore ottenendo info del webhook: {e}")
     
 # 🔹 File ID dei Premi XP
 video_premi = {
