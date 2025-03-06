@@ -16,6 +16,7 @@ CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 CHANNEL_LINK = os.getenv("CHANNEL_LINK")  # Manca nel tuo codice precedente
 URL = os.getenv("URL")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+PORT = int(os.getenv("PORT", 8080))  # Se PORT non è definita, usa 8080
 
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
