@@ -6,6 +6,7 @@ import telebot
 import psycopg2
 from psycopg2 import pool
 from datetime import datetime
+from flask import Flask 
 
 # 🔹 Token del bot e ID del canale
 TOKEN = os.getenv("BOT_TOKEN")
@@ -493,7 +494,15 @@ def update_xp_periodically():
 
         time.sleep(3600)  # Aspetta 1 ora prima del prossimo aggiornamento
         
+app = Flask(__name__)
+
+@app.route(f"/{TOKEN}", methods=["POST"])
+def webhook():
+    update = request.get_json()
+    if update:
+        bot.process_new_updates([telebot.types.Update.de_json(update)])
+    return "OK", 200
+
 if __name__ == "__main__":
-    print("🚀 Bot in esecuzione...")
-    bot.infinity_polling(skip_pending=True)
-    
+    print("🚀 Bot in esecuzione con Webhook...")
+    app.run(host="0.0.0.0", port=8080)  
