@@ -20,30 +20,28 @@ bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
 # 🔹 Database Connection Pool
 try:
-    db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, DATABASE_URL, sslmode='require')
+    db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, dsn=DATABASE_URL, sslmode='allow')
     print("✅ Connessione al Database stabilita con il Pool!")
 except Exception as e:
     raise RuntimeError(f"❌ Errore nella connessione al database: {e}")
-
+    
 # 🔹 Funzioni Database
 def get_db():
-    global db_pool  # Dichiarazione globale per modificare db_pool
-
+    global db_pool
     try:
         conn = db_pool.getconn()
         if conn.closed:
             raise RuntimeError("Connessione chiusa, ricreazione necessaria.")
         return conn, conn.cursor()
-    
     except Exception as e:
         print(f"❌ Errore nella connessione al database: {e}")
-
-        # Chiude tutte le connessioni e ricrea il pool
         db_pool.closeall()
-        db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, DATABASE_URL, sslmode='require')
-        
+        db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, dsn=DATABASE_URL, sslmode='allow')
         return get_db()  # Riprova con il nuovo pool
-        
+    finally:
+        if conn:
+            db_pool.putconn(conn)  # Rilascia connessione sempre!
+            
 def release_db(conn, cur):
     """Rilascia la connessione e il cursore nel pool."""
     if cur:  
@@ -73,13 +71,18 @@ def fetch_reactions():
     while True:
         try:
             params = {"offset": last_update_id, "timeout": 30}
-            response = requests.get(URL, params=params).json()
+            response = requests.get(URL, params=params)
+
+            if response.status_code != 200:
+                print(f"❌ Errore nella richiesta API Telegram: {response.status_code}")
+                continue  # Salta l'iterazione se c'è un errore
             
-            if response.get("ok"):
-                for update in response["result"]:
+            data = response.json()
+            
+            if data.get("ok"):
+                for update in data["result"]:
                     last_update_id = update["update_id"] + 1
                     
-                    # Controlliamo se il messaggio contiene una reaction
                     if "message" in update:
                         message = update["message"]
                         if "reaction" in message:
@@ -92,11 +95,14 @@ def fetch_reactions():
                             # Salviamo l'interazione nel database
                             add_xp_for_interaction(user_id, post_id, "reacted")
 
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Errore di rete nel polling delle reaction: {e}")
+        
         except Exception as e:
-            print(f"❌ Errore nel polling delle reaction: {e}")
+            print(f"❌ Errore generico nel polling delle reaction: {e}")
 
-        time.sleep(5)  # Controlla ogni 5 secondi
-
+        time.sleep(5)
+        
 # 🔹 Avvia il thread SOLO DOPO la definizione della funzione
 threading.Thread(target=fetch_reactions, daemon=True).start()
 
