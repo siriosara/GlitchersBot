@@ -1,6 +1,7 @@
 import os
 import time
 import threading
+import requests
 import telebot
 import psycopg2
 from psycopg2 import pool
@@ -499,10 +500,11 @@ app = Flask(__name__)
 @app.route("/webhook", methods=["POST"])
 def webhook():
     json_str = request.get_data().decode("utf-8")
+    print(f"📩 Ricevuto update: {json_str}")  # Debug
     update = telebot.types.Update.de_json(json_str)
     bot.process_new_updates([update])
     return "OK", 200
-
+    
 if __name__ == "__main__":
     print("🚀 Bot in esecuzione con Webhook...")
     app.run(host="0.0.0.0", port=8080)
