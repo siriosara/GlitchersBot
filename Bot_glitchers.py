@@ -111,16 +111,20 @@ try:
     webhook_info = requests.get(f"https://api.telegram.org/bot{TOKEN}/getWebhookInfo").json()
     current_webhook = webhook_info.get("result", {}).get("url")
 
-    if current_webhook == WEBHOOK_URL:
+    if current_webhook and current_webhook == WEBHOOK_URL:
         print("✅ Webhook già attivo, nessuna modifica necessaria.")
     else:
         print("🔄 Reimposto il webhook...")
         bot.remove_webhook()
         time.sleep(5)
         bot.set_webhook(url=WEBHOOK_URL)
+        print("✅ Webhook aggiornato con successo!")
+
+except requests.exceptions.RequestException as e:
+    print(f"❌ Errore di rete ottenendo info del webhook: {e}")
 except Exception as e:
-    print(f"❌ Errore ottenendo info del webhook: {e}")
-    
+    print(f"❌ Errore generico ottenendo info del webhook: {e}")
+
 # 🔹 File ID dei Premi XP
 video_premi = {
     250: "BAACAgQAAxkBAANRZ65g5avV2vGeKWB2sB7rYpL-z3QAAhYVAAK4hXFRQOWBHIJF29E2BA",
