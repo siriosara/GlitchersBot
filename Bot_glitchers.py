@@ -107,9 +107,23 @@ def fetch_reactions():
 threading.Thread(target=fetch_reactions, daemon=True).start()
 
 bot.remove_webhook()
-time.sleep(1)
+time.sleep(5)
 bot.set_webhook(url=WEBHOOK_URL)
 
+# Imposta un delay tra le richieste per evitare il 429
+bot = telebot.TeleBot(TOKEN, parse_mode="HTML", disable_notification=True, threaded=False)
+bot.enable_save_next_step_handlers(delay=0.5)  # Aspetta 0.5s tra le richieste
+
+# Controlla lo stato attuale del webhook
+webhook_info = requests.get(f"https://api.telegram.org/bot{TOKEN}/getWebhookInfo").json()
+if webhook_info.get("result", {}).get("url") == WEBHOOK_URL:
+    print("✅ Webhook già attivo, nessuna modifica necessaria.")
+else:
+    print("🔄 Reimposto il webhook...")
+    bot.remove_webhook()
+    time.sleep(5)
+    bot.set_webhook(url=WEBHOOK_URL)
+    
 # 🔹 File ID dei Premi XP
 video_premi = {
     250: "BAACAgQAAxkBAANRZ65g5avV2vGeKWB2sB7rYpL-z3QAAhYVAAK4hXFRQOWBHIJF29E2BA",
