@@ -124,7 +124,7 @@ except requests.exceptions.RequestException as e:
     print(f"❌ Errore di rete ottenendo info del webhook: {e}")
 except Exception as e:
     print(f"❌ Errore generico ottenendo info del webhook: {e}")
-
+    
 # 🔹 File ID dei Premi XP
 video_premi = {
     250: "BAACAgQAAxkBAANRZ65g5avV2vGeKWB2sB7rYpL-z3QAAhYVAAK4hXFRQOWBHIJF29E2BA",
