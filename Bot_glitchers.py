@@ -66,48 +66,6 @@ def update_xp(user_id, xp_gained):
     finally:
         release_db(conn, cur)
 
-# 🔹 Definizione della funzione fetch_reactions()
-def fetch_reactions():
-    last_update_id = None
-    
-    while True:
-        try:
-            params = {"offset": last_update_id, "timeout": 30}
-            response = requests.get(URL, params=params)
-
-            if response.status_code != 200:
-                print(f"❌ Errore nella richiesta API Telegram: {response.status_code}")
-                continue  # Salta l'iterazione se c'è un errore
-            
-            data = response.json()
-            
-            if data.get("ok"):
-                for update in data["result"]:
-                    last_update_id = update["update_id"] + 1
-                    
-                    if "message" in update:
-                        message = update["message"]
-                        if "reaction" in message:
-                            user_id = message["from"]["id"]
-                            post_id = message["message_id"]
-                            print(f"✅ Reaction registrata per user {user_id} su post {post_id}")
-                            
-                            bot.send_message(OWNER_ID, f"🔍 Reaction registrata: user_id={user_id}, post_id={post_id}")
-                            
-                            # Salviamo l'interazione nel database
-                            add_xp_for_interaction(user_id, post_id, "reacted")
-
-        except requests.exceptions.RequestException as e:
-            print(f"❌ Errore di rete nel polling delle reaction: {e}")
-        
-        except Exception as e:
-            print(f"❌ Errore generico nel polling delle reaction: {e}")
-
-        time.sleep(5)
-        
-# 🔹 Avvia il thread SOLO DOPO la definizione della funzione
-threading.Thread(target=fetch_reactions, daemon=True).start()
-
 # 🔹 Controlla se il webhook è già attivo PRIMA di modificarlo
 try:
     webhook_info = requests.get(f"https://api.telegram.org/bot{TOKEN}/getWebhookInfo").json()
