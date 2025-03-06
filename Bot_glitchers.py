@@ -6,6 +6,7 @@ import telebot
 import psycopg2
 from psycopg2 import pool
 from datetime import datetime
+from flask import Flask
 
 # 🔹 Token del bot e ID del canale
 TOKEN = os.getenv("BOT_TOKEN")
@@ -109,16 +110,6 @@ threading.Thread(target=fetch_reactions, daemon=True).start()
 bot.remove_webhook()
 time.sleep(1)
 bot.set_webhook(url=WEBHOOK_URL)
-
-from flask import Flask, request
-
-app = Flask(__name__)
-
-@app.route("/", methods=["POST"])
-def webhook():
-    update = telebot.types.Update.de_json(request.stream.read().decode("utf-8"))
-    bot.process_new_updates([update])
-    return "!", 200
 
 # 🔹 File ID dei Premi XP
 video_premi = {
@@ -488,3 +479,10 @@ def update_xp_periodically():
 
         time.sleep(3600)  # Aspetta 1 ora prima del prossimo aggiornamento
         
+app = Flask(__name__)
+
+@app.route("/", methods=["POST"])
+def webhook():
+    update = telebot.types.Update.de_json(request.stream.read().decode("utf-8"))
+    bot.process_new_updates([update])
+    return "!", 200
