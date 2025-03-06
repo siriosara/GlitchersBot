@@ -6,7 +6,7 @@ import telebot
 import psycopg2
 from psycopg2 import pool
 from datetime import datetime
-from flask import Flask 
+from flask import Flask, request
 
 # 🔹 Token del bot e ID del canale
 TOKEN = os.getenv("BOT_TOKEN")
