@@ -467,22 +467,26 @@ def webhook():
     json_str = request.get_data().decode("utf-8")
     print(f"📩 Ricevuto update: {json_str}")
 
-    update = telebot.types.Update.de_json(json_str)  # 🛠️ DEFINISCI 'update' CORRETTAMENTE
+    update = telebot.types.Update.de_json(json_str)  # ✅ Converte JSON in oggetto Update
 
-    # Controlla se è un update di reaction
-    if hasattr(update, "message_reaction"):  # 🛠️ VERIFICA CHE SIA UNA REACTION
+    # 🔹 Controlla se è un update di reaction PRIMA di accedere agli attributi
+    if hasattr(update, "message_reaction") and update.message_reaction is not None:
         try:
-            user_id = update.message_reaction.from_user.id
+            user_id = update.message_reaction.from_user.id  # 🛠️ VERIFICA PRIMA DI USARE
             post_id = update.message_reaction.message_id
 
             print(f"✅ Reaction ricevuta da user_id={user_id} su post_id={post_id}")
 
             # Aggiungi XP per la reaction
             add_xp_for_interaction(user_id, post_id, "reacted")
+        except AttributeError:
+            print("❌ Errore: update.message_reaction non contiene un from_user valido.")
         except Exception as e:
-            print(f"❌ Errore gestendo la reaction: {e}")
+            print(f"❌ Errore generico gestendo la reaction: {e}")
+    else:
+        print("⚠️ Update ricevuto ma non è una reaction valida.")
 
-    bot.process_new_updates([update])  # 🔥 ORA update È DEFINITO CORRETTAMENTE
+    bot.process_new_updates([update])
     return "OK", 200
     
 if __name__ == "__main__":
