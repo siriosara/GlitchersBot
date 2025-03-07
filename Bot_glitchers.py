@@ -73,14 +73,17 @@ try:
         print("🔄 Reimposto il webhook...")
         bot.remove_webhook()
         time.sleep(5)
-        bot.set_webhook(url=WEBHOOK_URL)
+        bot.set_webhook(
+            url=WEBHOOK_URL,
+            allowed_updates=["message", "edited_message", "channel_post", "edited_channel_post", "message_reaction"]
+        )
         print("✅ Webhook aggiornato con successo!")
 
 except requests.exceptions.RequestException as e:
     print(f"❌ Errore di rete ottenendo info del webhook: {e}")
 except Exception as e:
     print(f"❌ Errore generico ottenendo info del webhook: {e}")
-    
+
 # 🔹 File ID dei Premi XP
 video_premi = {
     250: "BAACAgQAAxkBAANRZ65g5avV2vGeKWB2sB7rYpL-z3QAAhYVAAK4hXFRQOWBHIJF29E2BA",
@@ -190,18 +193,14 @@ def add_xp_for_interaction(user_id, post_id, interaction_type):
         update_xp(user_id, 5)  # Aggiunge 5 XP
         mark_interaction(user_id, post_id, interaction_type)
 
-@bot.edited_channel_post_handler(func=lambda message: message.content_type == "reaction")
+@bot.edited_channel_post_handler(func=lambda message: hasattr(message, "reactions"))
 def handle_reaction(message):
-    user_id = message.from_user.id if message.from_user else None
+    user_id = message.chat.id  # Telegram non fornisce il vero user_id
     post_id = message.message_id
 
-    if not user_id:
-        print(f"⚠️ Nessun utente identificato per il messaggio {post_id}")
-        return
+    print(f"✅ Reaction ricevuta su post_id={post_id}")
 
-    print(f"✅ Reaction ricevuta da user_id={user_id} su post_id={post_id}")
-
-    # Aggiungi XP solo se l'utente non ha già interagito con il post
+    # Se il bot non riesce a ottenere l'user_id, aggiorna solo il post_id
     add_xp_for_interaction(user_id, post_id, "reacted")
     
 @bot.message_handler(commands=["start", "refresh", "classifica", "status", "totali", "ban", "dm"])
@@ -479,11 +478,8 @@ app = Flask(__name__)
 @app.route("/webhook", methods=["POST"])
 def webhook():
     json_str = request.get_data().decode("utf-8")
-    update = telebot.types.Update.de_json(json_str)
-
-    # Debug: Mostra gli update ricevuti
     print(f"📩 Ricevuto update: {json_str}")
-
+    
     # Controlla se è un update di reaction
     if "message_reaction" in json_str:
         try:
