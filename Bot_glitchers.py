@@ -465,14 +465,14 @@ app = Flask(__name__)
 @app.route("/webhook", methods=["POST"])
 def webhook():
     json_str = request.get_data().decode("utf-8")
-    print(f"📩 Ricevuto update: {json_str}")
+    update = telebot.types.Update.de_json(json_str)
 
-    update = telebot.types.Update.de_json(json_str)  # ✅ Converte JSON in oggetto Update
+    # 🔍 LOG DETTAGLIATO per capire cosa Telegram sta inviando
+    print(f"📩 Ricevuto update COMPLETO:\n{json_str}")
 
-    # 🔹 Controlla se è un update di reaction PRIMA di accedere agli attributi
     if hasattr(update, "message_reaction") and update.message_reaction is not None:
         try:
-            user_id = update.message_reaction.from_user.id  # 🛠️ VERIFICA PRIMA DI USARE
+            user_id = update.message_reaction.from_user.id
             post_id = update.message_reaction.message_id
 
             print(f"✅ Reaction ricevuta da user_id={user_id} su post_id={post_id}")
@@ -484,7 +484,7 @@ def webhook():
         except Exception as e:
             print(f"❌ Errore generico gestendo la reaction: {e}")
     else:
-        print("⚠️ Update ricevuto ma non è una reaction valida.")
+        print(f"⚠️ Update ricevuto ma non contiene una reaction. Tipo: {update}")
 
     bot.process_new_updates([update])
     return "OK", 200
