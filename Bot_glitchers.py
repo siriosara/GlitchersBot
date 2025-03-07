@@ -177,11 +177,11 @@ def mark_interaction(user_id, post_id, interaction_type):
     finally:
         release_db(conn, cur)
 
-@bot.message_handler(func=lambda message: True)
+@bot.message_handler(func=lambda message: message.text and not message.text.startswith("/"))
 def debug_all_messages(message):
     print(f"📩 Debug Update: {message.json}")
     bot.send_message(OWNER_ID, f"🔍 Debug update ricevuto:\n{message.json}")
-    
+
 def add_xp_for_interaction(user_id, post_id, interaction_type):
     """
     Aggiunge XP solo se l'utente non ha già interagito con il post.
@@ -204,6 +204,25 @@ def handle_reaction(message):
     # Aggiungi XP solo se l'utente non ha già interagito con il post
     add_xp_for_interaction(user_id, post_id, "reacted")
     
+@bot.message_handler(commands=["start", "refresh", "classifica", "status", "totali", "ban", "dm"])
+def handle_commands(message):
+    """Gestisce tutti i comandi e impedisce interferenze con altri handler"""
+    print(f"✅ Comando ricevuto: {message.text}")
+    if message.text.startswith("/refresh"):
+        handle_refresh_command(message)
+    elif message.text.startswith("/classifica"):
+        leaderboard(message)
+    elif message.text.startswith("/status"):
+        user_status(message)
+    elif message.text.startswith("/totali"):
+        total_users(message)
+    elif message.text.startswith("/ban"):
+        ban_user(message)
+    elif message.text.startswith("/dm"):
+        send_dm(message)
+    else:
+        send_welcome(message)
+
 def add_xp_for_interaction(user_id, post_id, interaction_type):
     if not user_has_interacted(user_id, post_id, interaction_type):
         print(f"✅ Aggiungendo XP per {interaction_type} su post {post_id} dell'utente {user_id}")  # DEBUG
@@ -460,8 +479,24 @@ app = Flask(__name__)
 @app.route("/webhook", methods=["POST"])
 def webhook():
     json_str = request.get_data().decode("utf-8")
-    print(f"📩 Ricevuto update: {json_str}")  # Debug
     update = telebot.types.Update.de_json(json_str)
+
+    # Debug: Mostra gli update ricevuti
+    print(f"📩 Ricevuto update: {json_str}")
+
+    # Controlla se è un update di reaction
+    if "message_reaction" in json_str:
+        try:
+            user_id = update.message_reaction.from_user.id
+            post_id = update.message_reaction.message_id
+
+            print(f"✅ Reaction ricevuta da user_id={user_id} su post_id={post_id}")
+
+            # Aggiungi XP per la reaction
+            add_xp_for_interaction(user_id, post_id, "reacted")
+        except Exception as e:
+            print(f"❌ Errore gestendo la reaction: {e}")
+
     bot.process_new_updates([update])
     return "OK", 200
     
