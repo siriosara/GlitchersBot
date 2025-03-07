@@ -182,8 +182,12 @@ def add_xp_for_interaction(user_id, post_id, interaction_type):
         update_xp(user_id, 5)  # Aggiunge 5 XP
         mark_interaction(user_id, post_id, interaction_type)
 
-@bot.edited_channel_post_handler(func=lambda message: hasattr(message, "reactions"))
+@bot.edited_channel_post_handler(func=lambda message: hasattr(message, "reactions") and message.reactions)
 def handle_reaction(message):
+    if not message.reactions:
+        print("⚠️ Nessuna reaction trovata in questo aggiornamento.")
+        return
+    
     user_id = message.chat.id  # Telegram non fornisce il vero user_id
     post_id = message.message_id
 
@@ -467,10 +471,11 @@ def webhook():
     json_str = request.get_data().decode("utf-8")
     update = telebot.types.Update.de_json(json_str)
 
-    # 🔍 LOG DETTAGLIATO per capire cosa Telegram sta inviando
+    # Debug: Mostra l'update ricevuto per controllarlo meglio
     print(f"📩 Ricevuto update COMPLETO:\n{json_str}")
 
-    if hasattr(update, "message_reaction") and update.message_reaction is not None:
+    # Controllo se l'update contiene una reaction
+    if hasattr(update, "message_reaction") and update.message_reaction:
         try:
             user_id = update.message_reaction.from_user.id
             post_id = update.message_reaction.message_id
@@ -479,12 +484,10 @@ def webhook():
 
             # Aggiungi XP per la reaction
             add_xp_for_interaction(user_id, post_id, "reacted")
-        except AttributeError:
-            print("❌ Errore: update.message_reaction non contiene un from_user valido.")
         except Exception as e:
-            print(f"❌ Errore generico gestendo la reaction: {e}")
+            print(f"❌ Errore gestendo la reaction: {e}")
     else:
-        print(f"⚠️ Update ricevuto ma non contiene una reaction. Tipo: {update}")
+        print(f"⚠️ Update ricevuto ma non contiene una reaction. Tipo: {json_str}")
 
     bot.process_new_updates([update])
     return "OK", 200
