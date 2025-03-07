@@ -27,7 +27,6 @@ try:
 except Exception as e:
     raise RuntimeError(f"❌ Errore nella connessione al database: {e}")
     
-# 🔹 Funzioni Database
 def get_db():
     global db_pool
     try:
@@ -39,11 +38,8 @@ def get_db():
         print(f"❌ Errore nella connessione al database: {e}")
         db_pool.closeall()
         db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, dsn=DATABASE_URL, sslmode='allow')
-        return get_db()  # Riprova con il nuovo pool
-    finally:
-        if conn:
-            db_pool.putconn(conn)  # Rilascia connessione sempre!
-            
+        return db_pool.getconn(), db_pool.getconn().cursor()  # 🛠️ CORRETTO: restituisce una connessione valida.
+        
 def release_db(conn, cur):
     """Rilascia la connessione e il cursore nel pool."""
     if cur:  
@@ -184,25 +180,16 @@ def add_xp_for_interaction(user_id, post_id, interaction_type):
         update_xp(user_id, 5)  # Aggiunge 5 XP
         mark_interaction(user_id, post_id, interaction_type)
 
-@bot.channel_post_handler(func=lambda message: True)
+@bot.message_handler(func=lambda message: hasattr(message, "reaction"))
 def handle_reaction(message):
-    print(f"🔍 Evento ricevuto: {message}")
-    
-    if not message or not message.from_user:
-        print("⚠️ Nessun utente associato al messaggio, ignorato.")
-        return
-
     user_id = message.from_user.id
     post_id = message.message_id
-    interaction_type = "reacted"
 
-    print(f"✅ Ricevuta reaction da user_id={user_id} su post_id={post_id}")
+    print(f"✅ Reaction ricevuta da user_id={user_id} su post_id={post_id}")
+
+    # Aggiungi XP solo se non ha già interagito
+    add_xp_for_interaction(user_id, post_id, "reacted")
     
-    # Debug per verificare se il bot riceve correttamente le reazioni
-    bot.send_message(OWNER_ID, f"🔍 Debug: Reaction registrata - user_id={user_id}, post_id={post_id}")
-
-    add_xp_for_interaction(user_id, post_id, interaction_type)
-
 def add_xp_for_interaction(user_id, post_id, interaction_type):
     if not user_has_interacted(user_id, post_id, interaction_type):
         print(f"✅ Aggiungendo XP per {interaction_type} su post {post_id} dell'utente {user_id}")  # DEBUG
