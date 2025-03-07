@@ -146,10 +146,18 @@ def mark_interaction(user_id, post_id, interaction_type):
     conn, cur = get_db()
     
     try:
-        # Controlla se l'interazione esiste già
-        cur.execute("SELECT * FROM interactions WHERE user_id = %s AND post_id = %s", (user_id, post_id))
+        # Verifica se esiste già l'interazione
+        cur.execute("SELECT reacted, viewed FROM interactions WHERE user_id = %s AND post_id = %s", (user_id, post_id))
         existing = cur.fetchone()
-        print(f"🔍 Esiste già un'interazione? {existing}")  # Debug
+        
+        if existing:
+            reacted, viewed = existing
+            if interaction_type == "reacted" and reacted:
+                print(f"⚠️ L'utente {user_id} ha già reagito a questo post.")
+                return
+            if interaction_type == "viewed" and viewed:
+                print(f"⚠️ L'utente {user_id} ha già visto questo post.")
+                return
 
         # Inserisce o aggiorna l'interazione
         query = f"""
@@ -161,8 +169,6 @@ def mark_interaction(user_id, post_id, interaction_type):
         conn.commit()
         
         print(f"✅ Interazione salvata per user_id={user_id}, post_id={post_id}, tipo={interaction_type}")
-        
-        # Debug Telegram
         bot.send_message(OWNER_ID, f"✅ Interazione salvata: {user_id} su {post_id}, tipo {interaction_type}")
 
     except Exception as e:
@@ -170,8 +176,12 @@ def mark_interaction(user_id, post_id, interaction_type):
         bot.send_message(OWNER_ID, f"❌ Errore salvando interazione: {e}")
     finally:
         release_db(conn, cur)
-        
-        
+
+@bot.message_handler(func=lambda message: True)
+def debug_all_messages(message):
+    print(f"📩 Debug Update: {message.json}")
+    bot.send_message(OWNER_ID, f"🔍 Debug update ricevuto:\n{message.json}")
+    
 def add_xp_for_interaction(user_id, post_id, interaction_type):
     """
     Aggiunge XP solo se l'utente non ha già interagito con il post.
@@ -180,14 +190,18 @@ def add_xp_for_interaction(user_id, post_id, interaction_type):
         update_xp(user_id, 5)  # Aggiunge 5 XP
         mark_interaction(user_id, post_id, interaction_type)
 
-@bot.message_handler(func=lambda message: hasattr(message, "reaction"))
+@bot.edited_channel_post_handler(func=lambda message: message.content_type == "reaction")
 def handle_reaction(message):
-    user_id = message.from_user.id
+    user_id = message.from_user.id if message.from_user else None
     post_id = message.message_id
+
+    if not user_id:
+        print(f"⚠️ Nessun utente identificato per il messaggio {post_id}")
+        return
 
     print(f"✅ Reaction ricevuta da user_id={user_id} su post_id={post_id}")
 
-    # Aggiungi XP solo se non ha già interagito
+    # Aggiungi XP solo se l'utente non ha già interagito con il post
     add_xp_for_interaction(user_id, post_id, "reacted")
     
 def add_xp_for_interaction(user_id, post_id, interaction_type):
