@@ -466,9 +466,11 @@ app = Flask(__name__)
 def webhook():
     json_str = request.get_data().decode("utf-8")
     print(f"📩 Ricevuto update: {json_str}")
-    
+
+    update = telebot.types.Update.de_json(json_str)  # 🛠️ DEFINISCI 'update' CORRETTAMENTE
+
     # Controlla se è un update di reaction
-    if "message_reaction" in json_str:
+    if hasattr(update, "message_reaction"):  # 🛠️ VERIFICA CHE SIA UNA REACTION
         try:
             user_id = update.message_reaction.from_user.id
             post_id = update.message_reaction.message_id
@@ -480,7 +482,7 @@ def webhook():
         except Exception as e:
             print(f"❌ Errore gestendo la reaction: {e}")
 
-    bot.process_new_updates([update])
+    bot.process_new_updates([update])  # 🔥 ORA update È DEFINITO CORRETTAMENTE
     return "OK", 200
     
 if __name__ == "__main__":
