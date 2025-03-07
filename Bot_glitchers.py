@@ -145,24 +145,17 @@ def user_has_interacted(user_id, post_id, interaction_type):
     return result and result[0]  # Se esiste e il valore è True, restituisce True
 
 def mark_interaction(user_id, post_id, interaction_type):
-    print(f"🔍 Registrando interazione: {interaction_type} per user_id={user_id} su post_id={post_id}")
     conn, cur = get_db()
-    
     try:
-        # Verifica se esiste già l'interazione
-        cur.execute("SELECT reacted, viewed FROM interactions WHERE user_id = %s AND post_id = %s", (user_id, post_id))
-        existing = cur.fetchone()
-        
-        if existing:
-            reacted, viewed = existing
-            if interaction_type == "reacted" and reacted:
-                print(f"⚠️ L'utente {user_id} ha già reagito a questo post.")
-                return
-            if interaction_type == "viewed" and viewed:
-                print(f"⚠️ L'utente {user_id} ha già visto questo post.")
-                return
+        print(f"🟡 Tentativo di registrare interazione {interaction_type} per user_id={user_id}, post_id={post_id}")
 
-        # Inserisce o aggiorna l'interazione
+        cur.execute("SELECT * FROM interactions WHERE user_id = %s AND post_id = %s", (user_id, post_id))
+        existing = cur.fetchone()
+
+        if existing:
+            print(f"⚠️ L'utente {user_id} ha già interagito con il post {post_id}.")
+            return
+        
         query = f"""
             INSERT INTO interactions (user_id, post_id, {interaction_type}) 
             VALUES (%s, %s, TRUE)
@@ -170,16 +163,12 @@ def mark_interaction(user_id, post_id, interaction_type):
         """
         cur.execute(query, (user_id, post_id))
         conn.commit()
-        
         print(f"✅ Interazione salvata per user_id={user_id}, post_id={post_id}, tipo={interaction_type}")
-        bot.send_message(OWNER_ID, f"✅ Interazione salvata: {user_id} su {post_id}, tipo {interaction_type}")
-
     except Exception as e:
         print(f"❌ Errore registrando interazione: {e}")
-        bot.send_message(OWNER_ID, f"❌ Errore salvando interazione: {e}")
     finally:
         release_db(conn, cur)
-
+        
 @bot.message_handler(func=lambda message: message.text and not message.text.startswith("/"))
 def debug_all_messages(message):
     print(f"📩 Debug Update: {message.json}")
@@ -292,10 +281,9 @@ def user_status(message):
     release_db(conn, cur)
     
 def force_update_xp(message):
-    """Forza l'aggiornamento manuale degli XP."""
     conn, cur = get_db()
+    print("🔄 Tentativo di aggiornamento XP...")
 
-    # Esegui la query per aggiornare gli XP
     cur.execute("""
         UPDATE users
         SET xp = xp + (
@@ -312,13 +300,12 @@ def force_update_xp(message):
         RETURNING user_id, xp;
     """)
     
-    updated_users = cur.fetchall()  # Ora la variabile esiste
+    updated_users = cur.fetchall()
 
     if updated_users:
         for user in updated_users:
             print(f"✅ XP aggiornati per user_id={user[0]}. Nuovo XP: {user[1]}")
         bot.reply_to(message, f"✅ XP aggiornati per {len(updated_users)} utenti!")
-
     else:
         bot.reply_to(message, "⚠️ Nessuna nuova interazione trovata. Nessun XP aggiornato.")
         print("⚠️ Nessuna nuova interazione trovata. Nessun XP aggiornato.")
