@@ -478,20 +478,21 @@ def webhook():
     # Debug: Mostra l'update ricevuto per controllarlo meglio
     print(f"📩 Ricevuto update COMPLETO:\n{json_str}")
 
-    # Controllo se l'update contiene una reaction
-    if hasattr(update, "message_reaction") and update.message_reaction:
-        try:
-            user_id = update.message_reaction.from_user.id
-            post_id = update.message_reaction.message_id
+# Controllo se l'update contiene una reaction
+if hasattr(update, "message_reaction") and update.message_reaction:
+    try:
+        user_id = update.message_reaction.from_user.id
+        post_id = update.message_reaction.message_id
 
-            print(f"✅ Reaction ricevuta da user_id={user_id} su post_id={post_id}")
+        print(f"✅ Reaction ricevuta da user_id={user_id} su post_id={post_id}")
 
-            # Aggiungi XP per la reaction
-            add_xp_for_interaction(user_id, post_id, "reacted")
-        except Exception as e:
-            print(f"❌ Errore gestendo la reaction: {e}")
-    else:
-        print(f"⚠️ Update ricevuto ma non contiene una reaction. Tipo: {json_str}")
+        # Aggiungi XP per la reaction
+        add_xp_for_interaction(user_id, post_id, "reacted")
+    except Exception as e:
+        print(f"❌ Errore gestendo la reaction: {e}")
+else:
+    print(f"⚠️ Update ricevuto ma non contiene una reaction. JSON:\n{json_str}")  # 👈 DEBUG AGGIUNTO
+    
 
     bot.process_new_updates([update])
     return "OK", 200
