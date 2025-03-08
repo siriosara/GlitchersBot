@@ -1,7 +1,5 @@
+flask
+requests
 telebot
 psycopg2-binary
-requests
-pyTelegramBotAPI
-gunicorn
-flask
 gunicorn
