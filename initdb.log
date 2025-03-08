@@ -1,0 +1,22 @@
+Running in debug mode.
+The files belonging to this database system will be owned by user "u0_a60".
+This user must also own the server process.
+
+VERSION=17.0
+PGDATA=/data/data/com.termux/files/usr/var/lib/postgresql
+share_path=/data/data/com.termux/files/usr/share/postgresql
+PGPATH=/data/data/com.termux/files/usr/bin
+POSTGRES_SUPERUSERNAME=u0_a60
+POSTGRES_BKI=/data/data/com.termux/files/usr/share/postgresql/postgres.bki
+POSTGRESQL_CONF_SAMPLE=/data/data/com.termux/files/usr/share/postgresql/postgresql.conf.sample
+PG_HBA_SAMPLE=/data/data/com.termux/files/usr/share/postgresql/pg_hba.conf.sample
+PG_IDENT_SAMPLE=/data/data/com.termux/files/usr/share/postgresql/pg_ident.conf.sample
+The database cluster will be initialized with locale "C.UTF-8".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+creating directory /data/data/com.termux/files/usr/var/lib/postgresql ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... mmap
+selecting default "max_connections" ... 
