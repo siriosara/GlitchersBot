@@ -169,6 +169,10 @@ def mark_interaction(user_id, post_id, interaction_type):
     finally:
         release_db(conn, cur)
         
+@bot.message_handler(func=lambda message: True)
+def debug_all_messages(message):
+    print(f"📩 Debug Update: {message.json}")
+
 @bot.message_handler(func=lambda message: message.text and not message.text.startswith("/"))
 def debug_all_messages(message):
     print(f"📩 Debug Update: {message.json}")
@@ -191,7 +195,7 @@ def handle_reaction(message):
     user_id = message.chat.id  # Telegram non fornisce il vero user_id
     post_id = message.message_id
 
-    print(f"✅ Reaction ricevuta su post_id={post_id}")
+    print(f"✅ Reaction ricevuta su post_id={message.message_id}")
 
     # Se il bot non riesce a ottenere l'user_id, aggiorna solo il post_id
     add_xp_for_interaction(user_id, post_id, "reacted")
