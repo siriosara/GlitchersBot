@@ -1,1 +1,1 @@
-web: gunicorn Bot_glitchers:app --bind 0.0.0.0:8080
+web: python Bot_glitchers.py
