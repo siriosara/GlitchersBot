@@ -142,10 +142,13 @@ app = Flask(__name__)
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    json_str = request.get_data().decode("utf-8")
-    update = telebot.types.Update.de_json(json_str)
-    print(f"📩 Ricevuto update COMPLETO:\n{json_str}")  # Debug
-    bot.process_new_updates([update])
+    try:
+        json_str = request.get_data().decode("utf-8")
+        update = telebot.types.Update.de_json(json_str)
+        print(f"📩 Ricevuto update COMPLETO:\n{json_str}")  # Debug
+        bot.process_new_updates([update])
+    except Exception as e:
+        print(f"Errore nel webhook: {e}")
     return "OK", 200
     
 if __name__ == "__main__":
