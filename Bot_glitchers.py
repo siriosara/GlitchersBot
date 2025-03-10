@@ -144,11 +144,14 @@ app = Flask(__name__)
 def webhook():
     try:
         json_str = request.get_data().decode("utf-8")
+        if not json_str:
+            return "Empty request", 400
         update = telebot.types.Update.de_json(json_str)
         print(f"📩 Ricevuto update COMPLETO:\n{json_str}")  # Debug
         bot.process_new_updates([update])
     except Exception as e:
         print(f"Errore nel webhook: {e}")
+        return f"Errore: {str(e)}", 500
     return "OK", 200
     
 if __name__ == "__main__":
