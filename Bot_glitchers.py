@@ -152,5 +152,8 @@ def webhook():
     bot.process_new_updates([update])
     return "OK", 200
     
+from waitress import serve
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    serve(app, host="0.0.0.0", port=8080)
+    
