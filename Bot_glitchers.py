@@ -153,3 +153,9 @@ def webhook():
     return "OK", 200
     
 app.run(host="127.0.0.1", port=8080, use_reloader=False)
+
+from waitress import serve
+
+if __name__ == "__main__":
+    serve(app, host="0.0.0.0", port=8080)
+    
