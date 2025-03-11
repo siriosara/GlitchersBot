@@ -140,6 +140,10 @@ def leaderboard(message):
 
 app = Flask(__name__)
 
+@app.route("/", methods=["GET"])
+def home():
+    return "✅ Flask è attivo!", 200
+
 @app.route("/webhook", methods=["POST"])
 def webhook():
     try:
