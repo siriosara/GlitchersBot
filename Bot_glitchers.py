@@ -1,12 +1,11 @@
 import os
-import time
-import threading
 import requests
 import telebot
 import psycopg2
 from psycopg2 import pool
 from datetime import datetime, timedelta
 from flask import Flask, request
+from waitress import serve
 
 # 🔹 Configurazione
 TOKEN = os.getenv("BOT_TOKEN")
@@ -19,7 +18,8 @@ PORT = int(os.getenv("PORT", 8080))
 
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
-db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, dsn=DATABASE_URL, sslmode='allow')
+# 🔹 Connessione al Database
+db_pool = psycopg2.pool.SimpleConnectionPool(1, 10, dsn=DATABASE_URL)
 
 def get_db():
     conn = db_pool.getconn()
@@ -138,6 +138,7 @@ def leaderboard(message):
     bot.send_message(message.chat.id, response, parse_mode="HTML")
     release_db(conn, cur)
 
+# 🔹 Flask API per il Webhook
 app = Flask(__name__)
 
 @app.route("/", methods=["GET"])
@@ -147,14 +148,9 @@ def home():
 @app.route("/webhook", methods=["POST"])
 def webhook():
     json_str = request.get_data().decode("utf-8")
-    print(f"📩 Ricevuto update: {json_str}")  # Debug
     update = telebot.types.Update.de_json(json_str)
     bot.process_new_updates([update])
     return "OK", 200
-    
-app.run(host="127.0.0.1", port=8080, use_reloader=False)
-
-from waitress import serve
 
 if __name__ == "__main__":
     serve(app, host="0.0.0.0", port=8080)
