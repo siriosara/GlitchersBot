@@ -1,5 +1,6 @@
 flask
 requests
-telebot
+pyTelegramBotAPI
 psycopg2-binary
+waitress
 gunicorn
