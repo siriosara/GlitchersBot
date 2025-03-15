@@ -1,6 +1,6 @@
-flask
+mysql-connector-python
 requests
-pyTelegramBotAPI
-psycopg2-binary
-waitress
+telebot
+flask
 gunicorn
+waitress
