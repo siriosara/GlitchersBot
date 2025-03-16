@@ -22,7 +22,15 @@ PORT = int(os.getenv("PORT", 8080))
 bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
 
 # 🔹 Connessione al Database
-db_pool = pooling.MySQLConnectionPool(pool_name="mypool", pool_size=10, host=MYSQL_HOST, user=MYSQL_USER, password=MYSQL_PASSWORD, database=MYSQL_DATABASE)
+db_pool = pooling.MySQLConnectionPool(
+        pool_name="mypool",
+            pool_size=10,
+                host=os.getenv("MYSQL_HOST", "metro.proxy.rlwy.net"),  # Host corretto
+                    port=int(os.getenv("MYSQL_PORT", 21928)),  # Porta corretta
+                        user=os.getenv("MYSQL_USER", "root"),
+                            password=os.getenv("MYSQL_PASSWORD", "iYWRnmakNkEktIMGjjoOOdXFPPXuXEkY"),
+                                database=os.getenv("MYSQL_DATABASE", "railway")
+)
 
 def get_db():
     conn = db_pool.get_connection()
