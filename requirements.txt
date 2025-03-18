@@ -1,6 +1,0 @@
-mysql-connector-python
-requests
-telebot
-flask
-gunicorn
-waitress
